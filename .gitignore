@@ -11,7 +11,11 @@ dist/
 *.pem
 *.key
 
-# Telegram user-account sessions (full-access credentials)
+# Telegram user-account sessions (full-access credentials): TDLib folders in case one is put inside the repo
+_td_database/
+_td_files/
+.tdlib/
+tdlib-data/
 *.session
 *.session-journal
 *.session.json

@@ -10,10 +10,11 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "tdlib:version": "tsx scripts/tdlib-version.ts",
     "telegram:login": "tsx scripts/telegram-login.ts",
     "telegram:read": "tsx scripts/telegram-read-chat.ts",
     "check:wallet-card": "tsx scripts/bot-wallet-card.ts",
-    "check:wallet-card-mtproto": "tsx scripts/mtproto-wallet-card.ts",
+    "check:wallet-card-user": "tsx scripts/user-wallet-card.ts",
     "ton:new-payer": "tsx scripts/ton-new-payer.ts",
     "ton:balance": "tsx scripts/ton-payer-balance.ts",
     "ton:send-test": "tsx scripts/ton-send-test.ts"
@@ -23,10 +24,12 @@
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^16.3.0",
     "dotenv": "^18.0.10",
-    "telegram": "^2.26.22"
+    "prebuilt-tdlib": "^0.1008070.0",
+    "tdl": "^8.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "tdlib-types": "npm:@prebuilt-tdlib/types@^0.1008070.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"
   }
