@@ -12,10 +12,8 @@ let loaded = false
 
 export function loadEnv(): void {
   if (loaded) return
-  if (!existsSync(ENV_PATH)) {
-    throw new Error(`Missing ${ENV_PATH}. Copy .env.example to .env in the repo root and fill it in.`)
-  }
-  config({ path: ENV_PATH, quiet: true })
+  // A missing .env is not fatal here: requireEnv() names the variable that is missing.
+  if (existsSync(ENV_PATH)) config({ path: ENV_PATH, quiet: true })
   loaded = true
 }
 
@@ -23,7 +21,7 @@ export function loadEnv(): void {
 export function requireEnv(name: string): string {
   loadEnv()
   const value = process.env[name]?.trim()
-  if (!value) throw new Error(`${name} is empty in .env`)
+  if (!value) throw new Error(`${name} is not set. Fill it in ${ENV_PATH} (copy .env.example to .env first).`)
   return value
 }
 
