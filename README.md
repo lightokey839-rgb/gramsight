@@ -50,10 +50,10 @@ Fill `.env` yourself in a text editor. Never paste its values into a chat, an is
 | `TELEGRAM_API_ID`, `TELEGRAM_API_HASH` | https://my.telegram.org, "API development tools" |
 | `TELEGRAM_SESSION` | Written by `npm run telegram:login` (below). Leave empty. |
 | `BOT_TOKEN` | @BotFather |
-| `BOT_OWNER_TELEGRAM_ID` | Your numeric Telegram user ID |
-| `TON_TESTNET_PAYER_MNEMONIC` | A **fresh testnet-only** wallet's 24 words, funded from a TON testnet faucet |
-| `TON_TESTNET_PAYER_WALLET_VERSION` | `v5r1` (Tonkeeper W5, default) or `v4r2` |
-| `TON_TESTNET_API_ENDPOINT` | `https://testnet.toncenter.com/api/v2/jsonRPC` |
+| `BOT_OWNER_TELEGRAM_ID` | Your numeric Telegram user ID. `npm run telegram:login` fills it if empty. |
+| `TON_TESTNET_PAYER_MNEMONIC` | Leave empty and run `npm run ton:new-payer` (below). No wallet app needed. |
+| `TON_TESTNET_PAYER_WALLET_VERSION` | `v5r1` (default: W5 with the testnet wallet id) or `v4r2` |
+| `TON_TESTNET_API_ENDPOINT` | `https://testnet.toncenter.com/api/v2/jsonRPC` (the default when empty) |
 | `TON_TESTNET_API_KEY` | toncenter key for testnet (optional, raises rate limits) |
 | `STT_API_KEY`, `LLM_API_KEY` | Speech-to-text and LLM providers (chosen later) |
 
@@ -64,6 +64,16 @@ Run this yourself in a terminal. You type the phone number, login code and 2FA p
 ```powershell
 cd backend; npm run telegram:login
 ```
+
+### Create and fund the testnet payer wallet
+
+```powershell
+cd backend; npm run ton:new-payer
+```
+
+This generates a fresh 24-word mnemonic into `.env` (only if it is empty; it never overwrites one and never prints the words) and prints the W5 testnet address to fund. Send that address to @testgiver_ton_bot in Telegram for free test Gram, then check it with `npm run ton:balance`.
+
+> **Never use your real Gram Wallet (the wallet inside Telegram) as the payer.** It is on mainnet and holds real funds. The payer is a separate, testnet-only wallet that exists only for this demo.
 
 ### Run the glasses app in the simulator
 
@@ -93,6 +103,7 @@ cd backend; npm run dev
 | `npm run telegram:read -- <chat>` | Reads the last few messages of one chat |
 | `npm run check:wallet-card` | Bot API `getChat` returns `ton_wallet_card` for a user who started the bot |
 | `npm run check:wallet-card-mtproto -- <user>` | Whether the user-account client can read a chat partner's wallet |
+| `npm run ton:new-payer` | Creates the testnet payer mnemonic in `.env` (if empty) and prints the address to fund |
 | `npm run ton:balance` | Derives the testnet payer address and reads its balance |
 | `npm run ton:send-test -- <address> <amount>` | Sends a tiny testnet transfer (dry run unless you confirm) |
 

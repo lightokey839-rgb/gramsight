@@ -62,8 +62,16 @@ async function main(): Promise<void> {
     writeEnvValue('TELEGRAM_SESSION', session)
 
     const me = await client.getMe()
-    console.log(`\nLogged in as user id ${me.id.toString()}${me.username ? ` (@${me.username})` : ''}.`)
+    const myId = me.id.toString()
+    console.log(`\nLogged in as user id ${myId}${me.username ? ` (@${me.username})` : ''}.`)
     console.log(`Session written to ${ENV_PATH} as TELEGRAM_SESSION (${session.length} characters, not shown).`)
+    const owner = optionalEnv('BOT_OWNER_TELEGRAM_ID')
+    if (!owner) {
+      writeEnvValue('BOT_OWNER_TELEGRAM_ID', myId)
+      console.log(`BOT_OWNER_TELEGRAM_ID was empty: set it to your id ${myId} (the only account allowed to use the vault).`)
+    } else if (owner !== myId) {
+      console.log(`Note: BOT_OWNER_TELEGRAM_ID is ${owner}, but you logged in as ${myId}. Left unchanged; fix it if that is wrong.`)
+    }
     console.log('Treat it like a password: it gives full access to this Telegram account.')
     console.log('To revoke it: Telegram > Settings > Devices > "Gramsight backend" > Terminate.')
   } finally {

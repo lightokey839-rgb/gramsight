@@ -6,7 +6,8 @@ import { fileURLToPath } from 'node:url'
 
 export const BACKEND_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..')
 export const REPO_ROOT = resolve(BACKEND_DIR, '..')
-export const ENV_PATH = resolve(REPO_ROOT, '.env')
+// GRAMSIGHT_ENV_FILE points the scripts at another file (used to test them without touching the real .env).
+export const ENV_PATH = process.env.GRAMSIGHT_ENV_FILE ? resolve(process.env.GRAMSIGHT_ENV_FILE) : resolve(REPO_ROOT, '.env')
 
 let loaded = false
 
@@ -32,8 +33,8 @@ export function optionalEnv(name: string): string | undefined {
 }
 
 /**
- * Sets KEY=value in the repo-root .env in place (replaces an existing line or appends one).
- * Used by the Telegram login script so the session string goes straight to disk and is never printed.
+ * Sets KEY=value in .env in place (replaces an existing line or appends one).
+ * Used by setup scripts so secrets (session string, payer mnemonic) go straight to disk and are never printed.
  */
 export function writeEnvValue(name: string, value: string): void {
   if (!/^[A-Z0-9_]+$/.test(name)) throw new Error('invalid env var name')
@@ -51,4 +52,11 @@ export function writeEnvValue(name: string, value: string): void {
   }
   writeFileSync(ENV_PATH, lines.join(eol), { encoding: 'utf8', mode: 0o600 })
   process.env[name] = value
+}
+
+/** Writes KEY=value only if KEY is currently empty. Returns true if it wrote. Never overwrites. */
+export function setEnvIfEmpty(name: string, value: string): boolean {
+  if (optionalEnv(name)) return false
+  writeEnvValue(name, value)
+  return true
 }

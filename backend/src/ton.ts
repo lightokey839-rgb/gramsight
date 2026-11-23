@@ -10,8 +10,10 @@ export const MAINNET_GLOBAL_ID = -239
 export type WalletVersion = 'v5r1' | 'v4r2'
 export type PayerWallet = WalletContractV5R1 | WalletContractV4
 
+export const DEFAULT_TESTNET_ENDPOINT = 'https://testnet.toncenter.com/api/v2/jsonRPC'
+
 export function testnetClient(): TonClient {
-  const endpoint = requireEnv('TON_TESTNET_API_ENDPOINT')
+  const endpoint = optionalEnv('TON_TESTNET_API_ENDPOINT') ?? DEFAULT_TESTNET_ENDPOINT
   if (!/testnet/i.test(endpoint)) {
     throw new Error('TON_TESTNET_API_ENDPOINT does not look like a testnet endpoint. Refusing to continue (testnet only).')
   }

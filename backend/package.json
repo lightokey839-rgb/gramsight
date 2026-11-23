@@ -14,6 +14,7 @@
     "telegram:read": "tsx scripts/telegram-read-chat.ts",
     "check:wallet-card": "tsx scripts/bot-wallet-card.ts",
     "check:wallet-card-mtproto": "tsx scripts/mtproto-wallet-card.ts",
+    "ton:new-payer": "tsx scripts/ton-new-payer.ts",
     "ton:balance": "tsx scripts/ton-payer-balance.ts",
     "ton:send-test": "tsx scripts/ton-send-test.ts"
   },
