@@ -13,4 +13,5 @@ Findings:
 
 - Taps arrive as `sysEvent` with `eventType` omitted (CLICK_EVENT = 0 is dropped by protobuf) and `eventSource: 1` = `TOUCH_EVENT_FROM_GLASSES_R`. The SDK has a separate `TOUCH_EVENT_FROM_RING = 2`, so ring and temple taps can be told apart on hardware. The simulator's HTTP API only sends source 1, so the ring source needs real hardware to confirm.
 - The first simulator launch drew nothing (0 lit pixels, empty console): it loaded before Vite was ready. Relaunching fixed it. Start the dev server first and wait for "ready".
+- Manual input from the simulator window also arrived (console ids 15 and 19): one tap (`click #3`, source 1), then a double-tap (`eventType: 3`), which the template answers with `shutDownPageContainer(1)`, so the page closed and later button screenshots were blank. Exit-on-double-tap works.
 - Screenshots are RGBA; transparent background, lit text is green with alpha > 0. Count lit pixels by alpha, not RGB.

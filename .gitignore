@@ -22,6 +22,9 @@ telegram-session*
 *.mnemonic
 *.mnemonic.txt
 
+# Simulator screenshot button output (lands in the working directory)
+glasses_*.png
+
 # Local tooling
 .claude/settings.local.json
 .vscode/
