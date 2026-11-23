@@ -120,7 +120,7 @@ cd backend; npm run dev
 ## Safety design
 
 - **The AI never writes an address.** It only extracts intent (which label, which chat, which recipient). Code fetches the address from the vault and builds both the confirmation card and the outgoing message.
-- **Chat text is untrusted input.** Nothing in a message can start an action; every send needs your voice command plus a tap.
+- **Chat text is untrusted input.** Nothing in a message can start an action; every send needs your voice command plus a tap. Real example from build day: 24 seconds after our testnet payer wallet was funded, an unknown account sent it 0.001 test Gram with a comment advertising a Telegram contact for "300 testnet TON". Unsolicited "send here" bait like that is exactly what Gramsight shows as untrusted and never acts on.
 - **No keys on the glasses or in the AI.** In this hackathon build the only signing key is a testnet-only payer key held by the backend. The production path keeps signing in the user's own wallet, under limits the user sets once in advance.
 - **Owner-only vault.** Only `BOT_OWNER_TELEGRAM_ID` can read or edit stored addresses. Public addresses only, never keys or seed phrases.
 - **Payment guards in code:** flagged or lookalike addresses are blocked, new addresses need a second confirmation, per-payment and daily limits, one tap sends exactly one payment.
