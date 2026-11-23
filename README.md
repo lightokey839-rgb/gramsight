@@ -19,6 +19,20 @@ Built for the **Heads Up: Even Realities Hackathon** (DoraHacks, 23 to 29 Nov 20
 
 Flow B joins both in one flow: an address arrives in a Telegram chat, is checked against the sender's Telegram profile wallet (Gram Wallet), and is paid on TON testnet.
 
+## From testnet to Gram Wallet on mainnet
+
+Hackathon demos must run on testnet. Gram Wallet, Telegram's built-in wallet, runs on TON, and the organizers confirmed that a TON testnet payment counts as a Gram Wallet integration. This is how each part of the build maps to mainnet:
+
+| | Hackathon build (TON testnet) | Gram Wallet on mainnet |
+|---|---|---|
+| **Payee** | The address from the chat, checked against the sender's Telegram profile wallet. A TON address is the same account on both networks, so the demo pays the recipient's real Gram Wallet address, on testnet. | The same address and the same check, on mainnet. |
+| **Address form** | Shown in testnet form (`0Q…` / `kQ…`) | Shown in mainnet form (`UQ…` / `EQ…`). Both are the same raw `workchain:hash`, which is what Gramsight compares. |
+| **Payer and signing** | A testnet-only wallet funded from a faucet. The backend holds its key and signs only after the checker's guards pass and you tap to confirm. | Your own Gram Wallet. Gramsight holds no key: it sends a TON Connect `sendTransaction` request (recipient, amount, comment) to your wallet, and the wallet signs. |
+| **Network** | toncenter testnet | TON mainnet |
+| **Unchanged** | The checker and its verdicts, the payment guards, the glasses flow, and the rule that the AI never writes an address | Same |
+
+On mainnet, approvals happen in your wallet. The plan follows the rule in [Safety design](#safety-design): small payments to verified addresses, within limits you set once in advance, stay hands-free; anything larger, or to a new address, is approved on your phone.
+
 ## Repository layout
 
 | Path | What it is |
