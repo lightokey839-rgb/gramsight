@@ -104,7 +104,37 @@ On real glasses: `evenhub qr --url http://<your-lan-ip>:5173`, then scan the QR 
 cd backend; npm run dev
 ```
 
-### Day 1 risk checks
+`npm run dev` starts the HTTP API and the vault bot. `npm run bot` starts only the bot. Run one copy of the bot at a time: Telegram rejects a second one.
+
+### The address vault bot
+
+Open your bot in Telegram from the account in `BOT_OWNER_TELEGRAM_ID` and send `/start`. Only that account, in a private chat, can use it.
+
+| Command | What it does |
+|---|---|
+| `/add <chain> [name] <address>` | Saves a public address as, e.g., "Solana main". The address is checked for that chain (EIP-55, TON and base58/bech32 checksums). |
+| `/list` | Shows saved addresses |
+| `/remove <chain> [name]` | Removes one |
+| `/chains` | Supported chains: ton, ethereum, base, arbitrum, optimism, polygon, bnb, solana, bitcoin, tron |
+
+- Every change asks you to tap **Confirm** within 2 minutes, and one tap applies exactly one change. A replacement shows the old and new fingerprints.
+- Anything that looks like a seed phrase or private key is deleted on sight, with a warning.
+- Anyone else who starts the bot gets a short privacy note. The bot records only their user id, so their profile wallet can be checked later.
+- The vault file is `~/.gramsight/vault.json`, outside the repo. It holds public addresses only.
+
+### Tests
+
+```powershell
+cd backend; npm test
+```
+
+These are unit tests for address validation, secret detection, the vault store, and the bot's owner-only confirm flow (run against a fake Bot API).
+
+### Risk checks and manual tests
+
+| Command (in `backend/`) | What it checks |
+|---|---|
+| `npm run telegram:send-test -- me "text" --send` | Sends one message as you (Saved Messages by default) after you type SEND |
 
 | Command (in `backend/`) | What it checks |
 |---|---|

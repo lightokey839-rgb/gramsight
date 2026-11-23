@@ -127,6 +127,14 @@ test('a pasted seed phrase is deleted and warned about, for owner and strangers 
   assert.equal(t.store.list().length, 0)
 })
 
+test('owner /start sets the owner-only command menu and shows help', async () => {
+  const t = setup('start')
+  await t.bot.handle(t.msg(OWNER, '/start'))
+  const menu = t.calls.find((c) => c.method === 'setMyCommands')
+  assert.deepEqual(menu?.params.scope, { type: 'chat', chat_id: OWNER })
+  assert.match(String(t.calls.at(-1)?.params.text), /address vault/)
+})
+
 test('group chats are ignored entirely', async () => {
   const t = setup('group')
   await t.bot.handle(t.msg(OWNER, '/list', 'group'))

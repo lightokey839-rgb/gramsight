@@ -105,6 +105,12 @@ export class VaultBot {
     this.log(`owner command: ${cmd?.startsWith('/') ? cmd : '(text)'}`)
     switch (cmd) {
       case '/start':
+        // The owner's command menu can only be set once the owner has opened a chat with the bot.
+        await this.api
+          .call('setMyCommands', { commands: OWNER_COMMANDS, scope: { type: 'chat', chat_id: this.ownerId } })
+          .catch(() => undefined)
+        await this.reply(msg.chat.id, HELP)
+        return
       case '/help':
         await this.reply(msg.chat.id, HELP)
         return

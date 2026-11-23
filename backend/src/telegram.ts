@@ -19,7 +19,7 @@ let configured = false
 /** Points tdl at the bundled tdjson library. Safe to call more than once. */
 export function configureTdlib(): void {
   if (configured) return
-  tdl.configure({ tdjson: getTdjson(), verbosityLevel: 1 })
+  tdl.configure({ tdjson: getTdjson(), verbosityLevel: 0 }) // 0 = fatal only; request errors still surface as TDLibError
   configured = true
 }
 
