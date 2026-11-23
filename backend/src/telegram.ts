@@ -15,7 +15,7 @@ export function newClient(sessionString = ''): TelegramClient {
   const client = new TelegramClient(new StringSession(sessionString), apiId, apiHash, {
     connectionRetries: 5,
     baseLogger: new Logger(LogLevel.ERROR),
-    deviceModel: 'SafeGlance backend',
+    deviceModel: 'Gramsight backend',
     appVersion: '0.1.0',
   })
   client.setLogLevel(LogLevel.ERROR)

@@ -33,7 +33,7 @@ async function main(): Promise<void> {
     await new Promise((r) => setTimeout(r, 1100)) // stay under toncenter's 1 req/s limit without a key
   }
 
-  console.log('\n* = the contract SafeGlance will pay from (TON_TESTNET_PAYER_WALLET_VERSION).')
+  console.log('\n* = the contract Gramsight will pay from (TON_TESTNET_PAYER_WALLET_VERSION).')
   if (funded === 0) {
     console.log('No candidate has a balance yet. Fund the starred address from a testnet faucet (for example @testgiver_ton_bot).')
   } else {

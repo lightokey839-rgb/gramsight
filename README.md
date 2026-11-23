@@ -1,6 +1,8 @@
-# SafeGlance (working name)
+# Gramsight
 
-Hands-free crypto address safety for Even Realities G2 smart glasses, inside Telegram.
+**Gramsight checks who you're paying before you pay, without touching your phone.**
+
+Hands-free crypto address safety for Even Realities G2 smart glasses, inside Telegram. Like Confirmation of Payee at UK banks, it checks that an address belongs to the person you think it does (the wallet on their own Telegram profile) before any money moves.
 
 - **Give out your address (Flow A):** someone in a Telegram chat asks for your address. The request shows on your glasses, you say "send my Solana address to Ada", check the confirmation card and tap the ring. The reply goes out from your own Telegram account. The address comes from your owner-only vault bot, never from the AI.
 - **Check before you pay (Flow B):** someone sends you an address. The glasses show a short verdict ("Matches their Telegram wallet", "New address, be careful", "Looks like a lookalike"). If it is safe and you say "send 10 Gram", one ring tap sends a real **TON testnet** Gram transfer.
@@ -105,7 +107,7 @@ cd backend; npm run dev
 
 ## What existed before Nov 23
 
-No SafeGlance code existed before the build week started on 23 Nov 2026. Everything in this repo was written during the hackathon, except:
+No Gramsight code existed before the build week started on 23 Nov 2026 (working name until then: SafeGlance). Everything in this repo was written during the hackathon, except:
 
 - `g2-app/` started as an unmodified copy of the official [`even-realities/evenhub-templates/minimal`](https://github.com/even-realities/evenhub-templates) template (commit `1f50dec`). Every change after that commit is ours.
 - Open-source libraries, used as published: Even Hub SDK, CLI and simulator (`@evenrealities/*`), GramJS (`telegram`), TON SDK (`@ton/ton`, `@ton/core`, `@ton/crypto`), `dotenv`, `tsx`, Vite, TypeScript.

@@ -18,7 +18,7 @@ const mainText = new TextContainerProperty({
   paddingLength: 4,
   containerID: 1,
   containerName: 'main',
-  content: 'SafeGlance: heads up, no phone.\nTap to count · double-tap to exit.',
+  content: 'Gramsight: heads up, no phone.\nTap to count · double-tap to exit.',
   isEventCapture: 1,
 })
 
@@ -63,7 +63,7 @@ const unsubscribe = bridge.onEvenHubEvent(event => {
 
   if (sysType === OsEventTypeList.CLICK_EVENT || textType === OsEventTypeList.CLICK_EVENT) {
     taps += 1
-    console.log(`[safeglance] input: click #${taps} via ${sysType === OsEventTypeList.CLICK_EVENT ? 'sysEvent' : 'textEvent'}`)
+    console.log(`[gramsight] input: click #${taps} via ${sysType === OsEventTypeList.CLICK_EVENT ? 'sysEvent' : 'textEvent'}`)
     bridge.textContainerUpgrade(
       new TextContainerUpgrade({
         containerID: 1,

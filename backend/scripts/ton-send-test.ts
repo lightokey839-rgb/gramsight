@@ -71,7 +71,7 @@ async function main(): Promise<void> {
   console.log(`  from:   ${testnetFriendly(from)}  balance ${fromNano(balance)}`)
   console.log(`  to:     ${testnetFriendly(to)}  (${destState.state})`)
   console.log(`  check:  ${addressFingerprint(testnetFriendly(to))}`)
-  console.log(`  amount: ${fromNano(amount)} Gram, bounce=${bounce}, comment "SafeGlance testnet test"`)
+  console.log(`  amount: ${fromNano(amount)} Gram, bounce=${bounce}, comment "Gramsight testnet test"`)
   if (balance < amount + FEE_BUFFER) throw new Error('Payer balance is too low for this amount plus fees. Top up from a testnet faucet.')
 
   if (!doSend) {
@@ -90,7 +90,7 @@ async function main(): Promise<void> {
     seqno,
     secretKey,
     sendMode: SendMode.PAY_GAS_SEPARATELY | SendMode.IGNORE_ERRORS,
-    messages: [internal({ to, value: amount, bounce, body: 'SafeGlance testnet test' })],
+    messages: [internal({ to, value: amount, bounce, body: 'Gramsight testnet test' })],
   })
   console.log(`Broadcast once (seqno ${seqno}). Waiting for it to land...`)
 

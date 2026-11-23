@@ -1,5 +1,7 @@
 # Day 1 simulator proof (23 Nov 2026)
 
+Captured at commit `468a554`, before the project was renamed from SafeGlance to Gramsight later the same day, so the first three files show the old name. `day1-04-gramsight-*.png` and `day1-console-gramsight.json` are the same check re-run after the rename.
+
 Setup: Node 24.22.1, `@evenrealities/evenhub-cli` 0.2.0, `@evenrealities/evenhub-simulator` 0.9.5 (global), template SDK `@evenrealities/even_hub_sdk` 0.0.10, Vite 5.4.21. Simulator launched with `evenhub-simulator http://localhost:5173 --automation-port 9898`; screenshots and input through its HTTP control plane.
 
 | File | What it shows |

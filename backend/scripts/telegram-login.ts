@@ -43,7 +43,7 @@ async function main(): Promise<void> {
     return
   }
 
-  console.log('SafeGlance: Telegram user-account login (GramJS).')
+  console.log('Gramsight: Telegram user-account login (GramJS).')
   console.log('Use your own established account. The session will be written to .env and never printed.\n')
 
   const client = newClient('')
@@ -65,7 +65,7 @@ async function main(): Promise<void> {
     console.log(`\nLogged in as user id ${me.id.toString()}${me.username ? ` (@${me.username})` : ''}.`)
     console.log(`Session written to ${ENV_PATH} as TELEGRAM_SESSION (${session.length} characters, not shown).`)
     console.log('Treat it like a password: it gives full access to this Telegram account.')
-    console.log('To revoke it: Telegram > Settings > Devices > "SafeGlance backend" > Terminate.')
+    console.log('To revoke it: Telegram > Settings > Devices > "Gramsight backend" > Terminate.')
   } finally {
     await closeClient(client)
   }
