@@ -5,7 +5,7 @@
 //   npm run telegram:read -- -1001234567890    by chat id from --list
 // Output goes to your terminal only. Message text is untrusted input: it is printed, never acted on.
 import type { Client } from '../src/telegram.ts'
-import { closeClient, connectLoggedIn } from '../src/telegram.ts'
+import { closeClient, connectLoggedIn, resolveChatId } from '../src/telegram.ts'
 
 function oneLine(text: string, max = 80): string {
   const flat = text.replace(/\s+/g, ' ').trim()
@@ -26,15 +26,6 @@ async function userName(client: Client, userId: number): Promise<string> {
   }
   names.set(userId, name)
   return name
-}
-
-async function resolveChatId(client: Client, target: string): Promise<number> {
-  if (target === 'me') {
-    const me = await client.invoke({ _: 'getMe' })
-    return (await client.invoke({ _: 'createPrivateChat', user_id: me.id, force: false })).id
-  }
-  if (/^-?\d+$/.test(target)) return (await client.invoke({ _: 'getChat', chat_id: Number(target) })).id
-  return (await client.invoke({ _: 'searchPublicChat', username: target.replace(/^@/, '') })).id
 }
 
 async function main(): Promise<void> {

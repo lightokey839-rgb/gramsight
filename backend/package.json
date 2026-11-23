@@ -10,6 +10,9 @@
     "dev": "tsx watch src/index.ts",
     "start": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
+    "test": "tsx --test test/*.test.ts",
+    "bot": "tsx src/bot/main.ts",
+    "telegram:send-test": "tsx scripts/telegram-send-test.ts",
     "tdlib:version": "tsx scripts/tdlib-version.ts",
     "telegram:login": "tsx scripts/telegram-login.ts",
     "telegram:read": "tsx scripts/telegram-read-chat.ts",
@@ -20,6 +23,9 @@
     "ton:send-test": "tsx scripts/ton-send-test.ts"
   },
   "dependencies": {
+    "@noble/hashes": "^2.4.0",
+    "@scure/base": "^2.4.0",
+    "@scure/bip39": "^2.4.0",
     "@ton/core": "^0.63.1",
     "@ton/crypto": "^3.3.0",
     "@ton/ton": "^16.3.0",

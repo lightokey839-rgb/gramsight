@@ -88,6 +88,66 @@ export async function getBooleanOption(client: Client, name: string): Promise<bo
   return v._ === 'optionValueBoolean' ? v.value : undefined
 }
 
+/**
+ * Sends one plain-text message as the logged-in user and waits until Telegram confirms it.
+ * Returns the final message id. Never retries: on a timeout the caller must check the chat before trying again,
+ * so a slow network can never turn into a double send. The text is sent verbatim (no markdown parsing).
+ */
+export async function sendTextAsUser(client: Client, chatId: number, text: string, timeoutMs = 20_000): Promise<number> {
+  if (!text.trim()) throw new Error('Refusing to send an empty message')
+  // Collect send results from the moment we start, so a fast confirmation cannot be missed.
+  const results = new Map<number, { ok: true; id: number } | { ok: false; reason: string }>()
+  let waiting: { tempId: number; resolve: (id: number) => void; reject: (e: Error) => void } | undefined
+  const onUpdate = (u: { _: string } & Record<string, unknown>) => {
+    if (u._ !== 'updateMessageSendSucceeded' && u._ !== 'updateMessageSendFailed') return
+    const old = u.old_message_id as number
+    const r =
+      u._ === 'updateMessageSendSucceeded'
+        ? ({ ok: true, id: (u.message as { id: number }).id } as const)
+        : ({ ok: false, reason: (u.error as { message: string }).message } as const)
+    if (waiting && waiting.tempId === old) {
+      if (r.ok) waiting.resolve(r.id)
+      else waiting.reject(new Error(`Telegram refused the message: ${r.reason}`))
+    } else results.set(old, r)
+  }
+  client.on('update', onUpdate)
+  try {
+    const temp = await client.invoke({
+      _: 'sendMessage',
+      chat_id: chatId,
+      input_message_content: { _: 'inputMessageText', text: { _: 'formattedText', text, entities: [] } },
+    })
+    const early = results.get(temp.id)
+    if (early) {
+      if (early.ok) return early.id
+      throw new Error(`Telegram refused the message: ${early.reason}`)
+    }
+    return await new Promise<number>((resolve, reject) => {
+      const timer = setTimeout(
+        () => reject(new Error(`Not confirmed within ${timeoutMs / 1000} s. Check the chat before sending again.`)),
+        timeoutMs,
+      )
+      waiting = {
+        tempId: temp.id,
+        resolve: (id) => (clearTimeout(timer), resolve(id)),
+        reject: (e) => (clearTimeout(timer), reject(e)),
+      }
+    })
+  } finally {
+    client.off('update', onUpdate)
+  }
+}
+
+/** Resolves "me", "@username" or a numeric chat id to a TDLib chat id (loads the chat so it can be used). */
+export async function resolveChatId(client: Client, target: string): Promise<number> {
+  if (target === 'me') {
+    const me = await client.invoke({ _: 'getMe' })
+    return (await client.invoke({ _: 'createPrivateChat', user_id: me.id, force: false })).id
+  }
+  if (/^-?\d+$/.test(target)) return (await client.invoke({ _: 'getChat', chat_id: Number(target) })).id
+  return (await client.invoke({ _: 'searchPublicChat', username: target.replace(/^@/, '') })).id
+}
+
 /** Resolves "me", "@username" or a numeric user id to a TDLib user id. */
 export async function resolveUserId(client: Client, target: string): Promise<number> {
   if (target === 'me') return (await client.invoke({ _: 'getMe' })).id

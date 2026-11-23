@@ -1,9 +1,18 @@
-// Gramsight backend entry point.
-// Day 1: skeleton only. Day 2 adds the vault bot and the Telegram user-account client.
+// Gramsight backend entry point: HTTP API for the glasses app (from Day 3) plus the vault bot.
+// `npm run dev` runs both; `npm run bot` runs only the bot. Never run two copies of the bot at once.
 import { createServer } from 'node:http'
-import { loadEnv } from './env.ts'
+import { loadEnv, optionalEnv } from './env.ts'
+import { runVaultBot } from './bot/run.ts'
 
 loadEnv()
+
+if (optionalEnv('BOT_TOKEN') && optionalEnv('BOT_OWNER_TELEGRAM_ID')) {
+  runVaultBot().catch((err: unknown) => {
+    console.error(`[vault-bot] stopped: ${err instanceof Error ? err.message : String(err)}`)
+  })
+} else {
+  console.log('[vault-bot] not started: set BOT_TOKEN and BOT_OWNER_TELEGRAM_ID in .env')
+}
 
 const port = Number(process.env.PORT ?? 8787)
 
