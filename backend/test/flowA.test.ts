@@ -170,7 +170,7 @@ test('a failed send is reported and never retried; double-tap cancels a confirma
 test('HTTP API: card, simulated request, command and tap; dev endpoint is off unless enabled', async () => {
   const t = setup('http')
   t.store.upsert('solana', 'main', SOL)
-  const server = createApiServer({ controller: t.ctl, dev: true })
+  const server = createApiServer({ screen: t.ctl, dev: { flowA: t.ctl } })
   await new Promise<void>((r) => server.listen(0, '127.0.0.1', r))
   const base = `http://127.0.0.1:${(server.address() as AddressInfo).port}`
   type Card = { kind: string; id: string }
@@ -190,7 +190,7 @@ test('HTTP API: card, simulated request, command and tap; dev endpoint is off un
     server.close()
   }
 
-  const prod = createApiServer({ controller: t.ctl, dev: false })
+  const prod = createApiServer({ screen: t.ctl })
   await new Promise<void>((r) => prod.listen(0, '127.0.0.1', r))
   try {
     const res = await fetch(`http://127.0.0.1:${(prod.address() as AddressInfo).port}/api/dev/request`, { method: 'POST', body: '{}' })

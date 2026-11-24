@@ -52,5 +52,5 @@ test('starters are recorded once and the file holds only public data', () => {
   assert.equal(store.starters()['42']?.username, 'ada')
   store.upsert('solana', 'main', SOL)
   const raw = JSON.parse(readFileSync(path, 'utf8'))
-  assert.deepEqual(Object.keys(raw).sort(), ['entries', 'starters', 'version'])
+  assert.deepEqual(Object.keys(raw).sort(), ['contacts', 'entries', 'starters', 'version'])
 })

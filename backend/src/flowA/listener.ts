@@ -5,6 +5,8 @@ import type { Client } from '../telegram.ts'
 import { sendTextAsUser } from '../telegram.ts'
 import type { FlowAController, MessageSender } from './controller.ts'
 import { detectAddressRequest } from './requests.ts'
+import { detectFamilies } from '../vault/addresses.ts'
+import type { FlowBController } from '../flowB/controller.ts'
 
 export class TdlibSender implements MessageSender {
   constructor(private readonly client: Client) {}
@@ -23,7 +25,21 @@ export class DryRunSender implements MessageSender {
   }
 }
 
-export function attachRequestListener(client: Client, controller: FlowAController, log: (line: string) => void): () => void {
+/** First token in the text that is a valid address of any supported family (Flow B: someone sent you an address). */
+export function firstAddressIn(text: string): string | undefined {
+  for (const token of text.split(/\s+/)) {
+    const t = token.replace(/^[^0-9A-Za-z]+|[^0-9A-Za-z_\-+/=]+$/g, '')
+    if (t.length >= 26 && detectFamilies(t).length > 0) return t
+  }
+  return undefined
+}
+
+export function attachRequestListener(
+  client: Client,
+  controller: FlowAController,
+  log: (line: string) => void,
+  flowB?: FlowBController,
+): () => void {
   const names = new Map<number, string>()
   const onUpdate = (u: { _: string } & Record<string, unknown>) => {
     if (u._ !== 'updateNewMessage') return
@@ -37,7 +53,8 @@ export function attachRequestListener(client: Client, controller: FlowAControlle
     }
     if (m.is_outgoing || m.content._ !== 'messageText' || !m.content.text) return
     const hint = detectAddressRequest(m.content.text.text)
-    if (!hint) return
+    const shared = !hint && flowB ? firstAddressIn(m.content.text.text) : undefined
+    if (!hint && !shared) return
     void (async () => {
       try {
         const chat = await client.invoke({ _: 'getChat', chat_id: m.chat_id })
@@ -54,14 +71,12 @@ export function attachRequestListener(client: Client, controller: FlowAControlle
             names.set(uid, fromName)
           }
         }
-        controller.addRequest({
-          chatId: m.chat_id,
-          chatTitle: isPrivate ? 'Private chat' : chat.title,
-          fromName,
-          text: m.content.text!.text,
-          messageId: m.id,
-          ...hint,
-        })
+        const chatTitle = isPrivate ? 'Private chat' : chat.title
+        if (shared && flowB) {
+          flowB.addShare({ chatId: m.chat_id, chatTitle, fromName, address: shared, messageId: m.id, ...(uid !== undefined ? { senderUserId: uid } : {}) })
+          return
+        }
+        controller.addRequest({ chatId: m.chat_id, chatTitle, fromName, text: m.content.text!.text, messageId: m.id, ...hint })
       } catch (err) {
         log(`could not queue a request: ${err instanceof Error ? err.message : String(err)}`)
       }

@@ -14,6 +14,18 @@ import { FlowAController, type MessageSender } from './flowA/controller.ts'
 import { LayeredIntentParser } from './flowA/intent.ts'
 import { DryRunSender, TdlibSender, attachRequestListener } from './flowA/listener.ts'
 import { createApiServer } from './http.ts'
+import { BotApi } from './bot/api.ts'
+import { AddressChecker } from './checker/checker.ts'
+import { PayerHistory } from './checker/payerHistory.ts'
+import {
+  BotProfileSource,
+  LayeredProfileSource,
+  type ProfileWalletSource,
+  TdlibProfileSource,
+  TonapiReputation,
+} from './checker/sources.ts'
+import { FlowBController } from './flowB/controller.ts'
+import { Screen } from './screen.ts'
 import { closeClient, connectLoggedIn, resolveChatId, type Client } from './telegram.ts'
 import { VaultStore } from './vault/store.ts'
 
@@ -41,15 +53,30 @@ async function main(): Promise<void> {
   const sender: MessageSender = live && client ? new TdlibSender(client) : new DryRunSender(log)
   const claude = claudeIntentParserFromEnv()
   const controller = new FlowAController(store, sender, new LayeredIntentParser(claude), Date.now, log)
-  if (client) attachRequestListener(client, controller, log)
+
+  // Address checker: profile wallet card (user account first, vault bot as fallback), saved contacts,
+  // lookalikes (vault, contacts, addresses the payer has paid), and tonapi scam flags.
+  const profileSources: ProfileWalletSource[] = []
+  if (client) profileSources.push(new TdlibProfileSource(client))
+  const botToken = optionalEnv('BOT_TOKEN')
+  if (botToken) profileSources.push(new BotProfileSource(new BotApi(botToken)))
+  const checker = new AddressChecker({
+    store,
+    ...(profileSources.length ? { profile: new LayeredProfileSource(profileSources) } : {}),
+    ...(flag('GRAMSIGHT_REPUTATION') === 'off' ? {} : { reputation: new TonapiReputation() }),
+    ...(optionalEnv('TON_TESTNET_PAYER_MNEMONIC') ? { history: new PayerHistory() } : {}),
+  })
+  const flowB = new FlowBController(checker, Date.now, log)
+  const screen = new Screen(controller, flowB)
+  if (client) attachRequestListener(client, controller, log, flowB)
 
   const server = createApiServer({
-    controller,
-    dev,
-    devChatId: client ? () => resolveChatId(client!, 'me') : undefined,
+    screen,
+    ...(dev ? { dev: { flowA: controller, flowB, ...(client ? { chatId: () => resolveChatId(client!, 'me') } : {}) } } : {}),
   })
   server.listen(port, '127.0.0.1', () => {
     log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · intent: rules${claude ? ' + Claude' : ''}${dev ? ' · dev endpoints on' : ''}`)
+    log(`checker: profile ${profileSources.length ? (client ? 'user account + bot' : 'bot only') : 'off'} · scam check ${flag('GRAMSIGHT_REPUTATION') === 'off' ? 'off' : 'tonapi'}`)
     log(`vault: ${store.path}`)
   })
 

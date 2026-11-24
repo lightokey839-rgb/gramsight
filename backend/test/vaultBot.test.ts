@@ -135,6 +135,27 @@ test('owner /start sets the owner-only command menu and shows help', async () =>
   assert.match(String(t.calls.at(-1)?.params.text), /address vault/)
 })
 
+test('trusted contacts: /contact needs Confirm, /contacts lists, /uncontact removes; strangers cannot add', async () => {
+  const t = setup('contacts')
+  await t.bot.handle(t.msg(STRANGER, `/contact solana ada ${SOL}`))
+  assert.equal(t.store.contacts().length, 0)
+
+  await t.bot.handle(t.msg(OWNER, `/contact solana ada ${SOL}`))
+  assert.equal(t.store.contacts().length, 0, 'nothing saved before Confirm')
+  await t.bot.handle(t.tap(OWNER, t.lastKeyboardData(0)))
+  assert.equal(t.store.contacts()[0]?.name, 'ada')
+
+  await t.bot.handle(t.msg(OWNER, '/contacts'))
+  assert.match(String(t.calls.at(-1)?.params.text), /Trusted contacts[\s\S]*ada/)
+
+  await t.bot.handle(t.msg(OWNER, '/contact solana bob 0x5aAeb6053F3E94C9b9A09f33669435E7Ef1BeAed'))
+  assert.match(String(t.calls.at(-1)?.params.text), /Not saved/)
+
+  await t.bot.handle(t.msg(OWNER, '/uncontact solana ada'))
+  await t.bot.handle(t.tap(OWNER, t.lastKeyboardData(0)))
+  assert.equal(t.store.contacts().length, 0)
+})
+
 test('group chats are ignored entirely', async () => {
   const t = setup('group')
   await t.bot.handle(t.msg(OWNER, '/list', 'group'))

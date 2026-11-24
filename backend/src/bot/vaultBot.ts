@@ -11,6 +11,8 @@ import { entryLabel, normalizeName, type VaultStore } from '../vault/store.ts'
 type Pending =
   | { kind: 'add'; chain: Chain; name: string; address: string; expires: number }
   | { kind: 'remove'; chain: Chain; name: string; expires: number }
+  | { kind: 'contact-add'; chain: Chain; name: string; address: string; expires: number }
+  | { kind: 'contact-remove'; chain: Chain; name: string; expires: number }
 
 export type VaultBotOptions = {
   api: BotApiLike
@@ -27,6 +29,9 @@ export const OWNER_COMMANDS = [
   { command: 'list', description: 'Show your saved addresses' },
   { command: 'add', description: 'Save an address: /add <chain> [name] <address>' },
   { command: 'remove', description: 'Remove one: /remove <chain> [name]' },
+  { command: 'contacts', description: 'Show trusted contacts' },
+  { command: 'contact', description: 'Trust an address: /contact <chain> <name> <address>' },
+  { command: 'uncontact', description: 'Forget one: /uncontact <chain> <name>' },
   { command: 'chains', description: 'Supported chains' },
   { command: 'help', description: 'How the vault works' },
 ]
@@ -39,6 +44,11 @@ const HELP = [
   '/list  show saved addresses',
   '/remove &lt;chain&gt; [name]  remove one',
   '/chains  supported chains',
+  '',
+  '<b>Trusted contacts</b> (addresses of people you pay, used by the checker)',
+  '/contact &lt;chain&gt; &lt;name&gt; &lt;address&gt;  e.g. <code>/contact ton ada UQB…</code>',
+  '/contacts  list them',
+  '/uncontact &lt;chain&gt; &lt;name&gt;  forget one',
   '',
   'Every change asks you to tap Confirm within 2 minutes.',
 ].join('\n')
@@ -130,6 +140,15 @@ export class VaultBot {
       case '/remove':
         await this.onRemove(msg.chat.id, args)
         return
+      case '/contacts':
+        await this.onContacts(msg.chat.id)
+        return
+      case '/contact':
+        await this.onContactAdd(msg.chat.id, args)
+        return
+      case '/uncontact':
+        await this.onContactRemove(msg.chat.id, args)
+        return
       default:
         await this.onText(msg.chat.id, text)
     }
@@ -205,6 +224,57 @@ export class VaultBot {
     )
   }
 
+  private async onContacts(chatId: number): Promise<void> {
+    const contacts = this.store.contacts()
+    if (!contacts.length) {
+      await this.reply(chatId, 'No trusted contacts yet. Add one with <code>/contact &lt;chain&gt; &lt;name&gt; &lt;address&gt;</code>.')
+      return
+    }
+    const lines = contacts.map((c) => `<b>${esc(c.name)}</b> · ${esc(chainDisplay(c.chain))}\n<code>${esc(c.address)}</code>`)
+    await this.reply(chatId, `<b>Trusted contacts</b>\n\n${lines.join('\n\n')}`)
+  }
+
+  private async onContactAdd(chatId: number, args: string[]): Promise<void> {
+    if (args.length !== 3) {
+      await this.reply(chatId, 'Usage: <code>/contact &lt;chain&gt; &lt;name&gt; &lt;address&gt;</code>, for example <code>/contact ton ada UQB…</code>')
+      return
+    }
+    const chain = parseChain(args[0])
+    const name = normalizeName(args[1])
+    if (!chain || !name) {
+      await this.reply(chatId, !chain ? `Unknown chain "${esc(args[0])}". See /chains.` : 'The name must be 1 to 20 characters: letters, digits, - or _.')
+      return
+    }
+    const checked = validateForChain(chain, args[2])
+    if (!checked.ok) {
+      await this.reply(chatId, `Not saved: not a valid ${chainDisplay(chain)} address (${esc(checked.reason)}).`)
+      return
+    }
+    const previous = this.store.contacts().find((c) => c.name === name && c.chain === chain)
+    const lines = [
+      `${previous ? 'Replace' : 'Trust'} contact <b>${esc(name)}</b> (${esc(chainDisplay(chain))})?`,
+      `<code>${esc(checked.display)}</code>`,
+      `Check: <code>${esc(fingerprint(checked.display))}</code>`,
+    ]
+    if (previous) lines.push(`Old: <code>${esc(fingerprint(previous.address))}</code>`)
+    await this.askConfirm(chatId, { kind: 'contact-add', chain, name, address: checked.display, expires: this.now() + this.ttl }, lines.join('\n'))
+  }
+
+  private async onContactRemove(chatId: number, args: string[]): Promise<void> {
+    const chain = args[0] ? parseChain(args[0]) : undefined
+    const name = args[1] ? normalizeName(args[1]) : undefined
+    const contact = chain && name ? this.store.contacts().find((c) => c.name === name && c.chain === chain) : undefined
+    if (!contact) {
+      await this.reply(chatId, chain && name ? 'No such contact. See /contacts.' : 'Usage: <code>/uncontact &lt;chain&gt; &lt;name&gt;</code>')
+      return
+    }
+    await this.askConfirm(
+      chatId,
+      { kind: 'contact-remove', chain: contact.chain, name: contact.name, expires: this.now() + this.ttl },
+      `Forget contact <b>${esc(contact.name)}</b> (${esc(chainDisplay(contact.chain))})?\n<code>${esc(fingerprint(contact.address))}</code>`,
+    )
+  }
+
   private async onText(chatId: number, text: string): Promise<void> {
     const families = detectFamilies(text)
     if (families.length) {
@@ -269,7 +339,15 @@ export class VaultBot {
       return
     }
     try {
-      if (p.kind === 'add') {
+      if (p.kind === 'contact-add') {
+        const { contact } = this.store.upsertContact(p.name, p.chain, p.address)
+        await edit(`Trusted <b>${esc(contact.name)}</b> (${esc(chainDisplay(contact.chain))})\n<code>${esc(fingerprint(contact.address))}</code>`)
+        await answer('Saved.')
+      } else if (p.kind === 'contact-remove') {
+        const removed = this.store.removeContact(p.name, p.chain)
+        await edit(removed ? `Forgot contact <b>${esc(removed.name)}</b>.` : 'It was already gone. Nothing changed.')
+        await answer(removed ? 'Removed.' : 'Nothing changed.')
+      } else if (p.kind === 'add') {
         const { entry } = this.store.upsert(p.chain, p.name, p.address)
         await edit(`Saved <b>${esc(entryLabel(entry))}</b>\n<code>${esc(fingerprint(entry.address))}</code>`)
         await answer('Saved.')

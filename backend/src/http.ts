@@ -3,6 +3,8 @@
 import { type IncomingMessage, type Server, type ServerResponse, createServer } from 'node:http'
 import type { FlowAController } from './flowA/controller.ts'
 import { chainHintIn } from './flowA/requests.ts'
+import type { FlowBController } from './flowB/controller.ts'
+import type { ScreenLike } from './screen.ts'
 
 const MAX_BODY = 8 * 1024
 
@@ -35,17 +37,23 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(JSON.stringify(body))
 }
 
-export type ApiOptions = { controller: FlowAController; dev: boolean; devChatId?: () => Promise<number> }
+const str = (v: unknown, max: number, fallback: string) => (typeof v === 'string' && v.trim() ? v.slice(0, max) : fallback)
+
+export type ApiOptions = {
+  screen: ScreenLike
+  /** Dev-only endpoints that simulate incoming Telegram messages. Leave undefined in normal runs. */
+  dev?: { flowA?: FlowAController; flowB?: FlowBController; chatId?: () => Promise<number> }
+}
 
 export function createApiServer(opts: ApiOptions): Server {
-  const { controller } = opts
+  const { screen, dev } = opts
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost')
       if (req.method === 'GET' && url.pathname === '/health') {
         return send(res, 200, { ok: true, service: 'gramsight-backend', network: 'testnet' })
       }
-      if (req.method === 'GET' && url.pathname === '/api/card') return send(res, 200, controller.view())
+      if (req.method === 'GET' && url.pathname === '/api/card') return send(res, 200, screen.view())
       if (req.method !== 'POST') return send(res, 404, { error: 'not found' })
 
       const body = await readJson(req)
@@ -53,27 +61,41 @@ export function createApiServer(opts: ApiOptions): Server {
         case '/api/command': {
           const text = typeof body.text === 'string' ? body.text.slice(0, 300) : ''
           if (!text.trim()) return send(res, 400, { error: 'text is required' })
-          return send(res, 200, await controller.command(text))
+          return send(res, 200, await screen.command(text))
         }
         case '/api/tap':
-          return send(res, 200, await controller.tap(String(body.cardId ?? '')))
+          return send(res, 200, await screen.tap(String(body.cardId ?? '')))
         case '/api/cancel':
-          return send(res, 200, controller.cancel())
+          return send(res, 200, screen.cancel())
         case '/api/next':
-          return send(res, 200, controller.next())
+          return send(res, 200, screen.next())
         case '/api/dev/request': {
-          // Dev only: simulate an incoming "send me your address" message, for the simulator demo and tests.
-          if (!opts.dev) return send(res, 404, { error: 'not found' })
-          const text = typeof body.text === 'string' && body.text.trim() ? body.text.slice(0, 300) : 'can you send me your sol address?'
-          const chatId = typeof body.chatId === 'number' ? body.chatId : opts.devChatId ? await opts.devChatId() : 0
-          controller.addRequest({
+          // Dev only: simulate "send me your address" (Flow A).
+          if (!dev?.flowA) return send(res, 404, { error: 'not found' })
+          const text = str(body.text, 300, 'can you send me your sol address?')
+          const chatId = typeof body.chatId === 'number' ? body.chatId : dev.chatId ? await dev.chatId() : 0
+          dev.flowA.addRequest({
             chatId,
-            chatTitle: typeof body.chatTitle === 'string' ? body.chatTitle.slice(0, 40) : 'Test chat',
-            fromName: typeof body.fromName === 'string' ? body.fromName.slice(0, 30) : 'Ada',
+            chatTitle: str(body.chatTitle, 40, 'Test chat'),
+            fromName: str(body.fromName, 30, 'Ada'),
             text,
             ...chainHintIn(text),
           })
-          return send(res, 200, controller.view())
+          return send(res, 200, screen.view())
+        }
+        case '/api/dev/share': {
+          // Dev only: simulate someone sending you an address (Flow B), optionally from a real Telegram user id.
+          if (!dev?.flowB) return send(res, 404, { error: 'not found' })
+          const address = str(body.address, 120, '')
+          if (!address) return send(res, 400, { error: 'address is required' })
+          dev.flowB.addShare({
+            chatId: typeof body.chatId === 'number' ? body.chatId : 0,
+            chatTitle: str(body.chatTitle, 40, 'Test chat'),
+            fromName: str(body.fromName, 30, 'Ada'),
+            address,
+            ...(typeof body.senderUserId === 'number' ? { senderUserId: body.senderUserId } : {}),
+          })
+          return send(res, 200, screen.view())
         }
         default:
           return send(res, 404, { error: 'not found' })

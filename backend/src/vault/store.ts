@@ -20,7 +20,17 @@ export type VaultEntry = {
 
 export type Starter = { firstSeen: string; username?: string }
 
-type VaultFile = { version: 1; entries: VaultEntry[]; starters: Record<string, Starter> }
+/** Someone else's address you trust (you have paid them, or saved it yourself). Used by the checker. */
+export type VaultContact = {
+  name: string
+  chain: Chain
+  address: string
+  normalized: string
+  telegramUserId?: number
+  addedAt: string
+}
+
+type VaultFile = { version: 1; entries: VaultEntry[]; contacts: VaultContact[]; starters: Record<string, Starter> }
 
 export function dataDir(): string {
   return resolve(optionalEnv('GRAMSIGHT_DATA_DIR') ?? join(homedir(), '.gramsight'))
@@ -44,10 +54,11 @@ export class VaultStore {
   constructor(readonly path: string = defaultVaultPath()) {}
 
   private read(): VaultFile {
-    if (!existsSync(this.path)) return { version: 1, entries: [], starters: {} }
+    if (!existsSync(this.path)) return { version: 1, entries: [], contacts: [], starters: {} }
     const data = JSON.parse(readFileSync(this.path, 'utf8')) as VaultFile
     if (data.version !== 1 || !Array.isArray(data.entries)) throw new Error(`Unrecognised vault file: ${this.path}`)
     data.starters ??= {}
+    data.contacts ??= []
     return data
   }
 
@@ -104,6 +115,54 @@ export class VaultStore {
     const [removed] = data.entries.splice(idx, 1)
     this.write(data)
     return removed
+  }
+
+  contacts(): VaultContact[] {
+    return [...this.read().contacts].sort((a, b) => a.name.localeCompare(b.name) || a.chain.localeCompare(b.chain))
+  }
+
+  /** Adds or replaces a contact (one address per contact name and chain). */
+  upsertContact(
+    name: string,
+    chain: Chain,
+    address: string,
+    telegramUserId?: number,
+    now = new Date(),
+  ): { contact: VaultContact; previous?: VaultContact } {
+    const n = normalizeName(name)
+    if (!n) throw new Error('Contact name must be 1 to 20 characters: letters, digits, - or _ (for example "ada")')
+    const checked = validateForChain(chain, address)
+    if (!checked.ok) throw new Error(`Not a valid ${chainDisplay(chain)} address: ${checked.reason}`)
+    const data = this.read()
+    const idx = data.contacts.findIndex((c) => c.name === n && c.chain === chain)
+    const previous = idx >= 0 ? data.contacts[idx] : undefined
+    const contact: VaultContact = {
+      name: n,
+      chain,
+      address: checked.display,
+      normalized: checked.normalized,
+      ...(telegramUserId ?? previous?.telegramUserId ? { telegramUserId: telegramUserId ?? previous?.telegramUserId } : {}),
+      addedAt: now.toISOString(),
+    }
+    if (idx >= 0) data.contacts[idx] = contact
+    else data.contacts.push(contact)
+    this.write(data)
+    return { contact, previous }
+  }
+
+  removeContact(name: string, chain: Chain): VaultContact | undefined {
+    const n = normalizeName(name)
+    const data = this.read()
+    const idx = data.contacts.findIndex((c) => c.name === n && c.chain === chain)
+    if (idx < 0) return undefined
+    const [removed] = data.contacts.splice(idx, 1)
+    this.write(data)
+    return removed
+  }
+
+  /** Contacts whose address is this exact address (normalized comparison, same format family). */
+  contactsWithAddress(normalized: string): VaultContact[] {
+    return this.read().contacts.filter((c) => c.normalized === normalized)
   }
 
   recordStarter(userId: number, username?: string, now = new Date()): boolean {
