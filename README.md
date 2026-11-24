@@ -118,7 +118,31 @@ On real glasses: `evenhub qr --url http://<your-lan-ip>:5173`, then scan the QR 
 cd backend; npm run dev
 ```
 
-`npm run dev` starts the HTTP API and the vault bot. `npm run bot` starts only the bot. Run one copy of the bot at a time: Telegram rejects a second one.
+`npm run dev` starts the HTTP API for the glasses (on `127.0.0.1:8787` only), the Telegram request listener and the vault bot. `npm run bot` starts only the bot. Run one copy of the bot at a time: Telegram rejects a second one. TDLib allows one client per login, so stop `npm run dev` before running the `telegram:*` scripts.
+
+| Setting (in `.env` or the shell) | Effect |
+|---|---|
+| `GRAMSIGHT_SEND=live` | Really send replies as your Telegram account. **Default is dry-run**, which logs what would be sent. |
+| `GRAMSIGHT_DEV=1` | Enables `POST /api/dev/request` and the phone page's "simulate a request" form |
+| `GRAMSIGHT_TELEGRAM=off` | Don't start TDLib (UI work with dry-run) |
+| `GRAMSIGHT_BOT=off` | Don't start the vault bot in this process |
+| `ANTHROPIC_API_KEY` | Optional. Claude reads command phrasing the built-in rules don't understand. Off when unset. |
+
+### Flow A on the glasses (someone asks for your address)
+
+1. Someone messages you, for example "can you send me your sol address?". In a group, this only counts when they tag you or reply to you.
+2. The glasses show the request card: chat, who asked, what they asked.
+3. You say (for now, type on the phone page) "send my Solana address".
+4. The confirmation card shows the chat, the label ("Solana main") and the address's start, middle and end.
+5. Tap the temple or the R1 ring to send it from your own account. Double-tap cancels.
+
+What code enforces here, and never the AI:
+- The address comes from the vault.
+- The recipient is the chat on screen.
+- The chain must match what was asked for.
+- One tap sends exactly once, with no automatic retry.
+
+Proof from the simulator is in [docs/proof/day3-flowA.md](docs/proof/day3-flowA.md).
 
 ### The address vault bot
 

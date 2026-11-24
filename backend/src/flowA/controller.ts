@@ -164,7 +164,8 @@ export class FlowAController {
       this.requests = this.requests.filter((r) => r.id !== c.request.id)
       this.confirmation = undefined
       this.log(`sent ${c.entry.chain}:${c.entry.name} to chat ${c.request.chatId}`)
-      this.setFlash('sent', `SENT ✓\n${entryLabel(c.entry)} → ${c.request.fromName}\n${c.request.chatTitle}`)
+      // The G2 font has no check-mark glyph, so the card says it in words.
+      this.setFlash('sent', `SENT\n${entryLabel(c.entry)} → ${c.request.fromName}\n${c.request.chatTitle}`)
     } catch (err) {
       this.confirmation = undefined
       const reason = err instanceof Error ? err.message : String(err)
@@ -197,7 +198,10 @@ export class FlowAController {
       this.bump()
     }
     const v = this.version
-    if (this.flash) return { id: this.flash.id, kind: this.flash.kind, text: this.flash.text, tap: 'none', doubleTap: 'cancel', version: v }
+    if (this.flash) {
+      const text = this.flash.kind === 'error' ? `${this.flash.text}\n\nDouble-tap: back` : this.flash.text
+      return { id: this.flash.id, kind: this.flash.kind, text, tap: 'none', doubleTap: 'cancel', version: v }
+    }
 
     const c = this.confirmation
     if (c) {
