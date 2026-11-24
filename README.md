@@ -144,6 +144,26 @@ What code enforces here, and never the AI:
 
 Proof from the simulator is in [docs/proof/day3-flowA.md](docs/proof/day3-flowA.md).
 
+### The address checker (someone sends you an address)
+
+When an address arrives in a chat, Gramsight checks it in layers and shows one verdict card:
+
+1. **Their Telegram profile wallet.** The Gram Wallet card on the sender's own profile, read by your account (TDLib), with the vault bot as a fallback.
+   - **Matches their Telegram wallet** only when a card exists and it is the same address (compared as raw `workchain:hash`).
+   - **Not their Telegram wallet** when the card shows a different address.
+   - **No wallet on their profile** is neutral and never counts as a match.
+2. **Your saved contacts** in the vault (`/contact` in the bot).
+3. **Lookalikes.** Same visible start and end as something you trust, but a different address. "Trusted" means your own addresses, your contacts, addresses you have paid before, and the sender's real profile wallet. Only outgoing payments count, because address poisoning arrives as incoming dust.
+4. **Scam reports:** tonapi.io `is_scam`, read from mainnet. The address is sent to tonapi for this lookup.
+
+| Verdict | Payment |
+|---|---|
+| Not a valid address, flagged as scam, lookalike | **Blocked** |
+| Not their Telegram wallet, new address, your own address, saved under another person | Needs a spoken "confirm" plus a tap |
+| Matches their Telegram wallet, matches saved contact | One tap |
+
+A layer that fails or times out (4 s) is shown as "couldn't check", never as safe. A full check takes about 1.3 s. Try it from the terminal with `npm run check:address -- <address> [--from @username]`. Proof: [docs/proof/day4-checker.md](docs/proof/day4-checker.md).
+
 ### The address vault bot
 
 Open your bot in Telegram from the account in `BOT_OWNER_TELEGRAM_ID` and send `/start`. Only that account, in a private chat, can use it.
@@ -154,6 +174,8 @@ Open your bot in Telegram from the account in `BOT_OWNER_TELEGRAM_ID` and send `
 | `/list` | Shows saved addresses |
 | `/remove <chain> [name]` | Removes one |
 | `/chains` | Supported chains: ton, ethereum, base, arbitrum, optimism, polygon, bnb, solana, bitcoin, tron |
+| `/contact <chain> <name> <address>` | Trusts someone else's address (used by the checker for matches and lookalikes) |
+| `/contacts`, `/uncontact <chain> <name>` | Lists or forgets trusted contacts |
 
 - Every change asks you to tap **Confirm** within 2 minutes, and one tap applies exactly one change. A replacement shows the old and new fingerprints.
 - Anything that looks like a seed phrase or private key is deleted on sight, with a warning.
