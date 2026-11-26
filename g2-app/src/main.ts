@@ -111,14 +111,16 @@ function toBytes(p: unknown): Uint8Array {
 
 async function startListening(): Promise<void> {
   if (listening || busy) return
-  const ok = await bridge.audioControl(true)
-  if (!ok) {
-    draw(`${card.text}\n\nMicrophone unavailable. Type on the phone.`)
-    return
-  }
+  // Mark as listening before the (sometimes slow) mic switch, so a tap during start-up stops instead of restarting.
   listening = { chunks: [], timer: window.setTimeout(() => void stopListening(), MAX_LISTEN_MS) }
   console.log('[gramsight] input: listening')
   draw(`${card.text}\n\nListening... tap to stop`)
+  const ok = await bridge.audioControl(true)
+  if (!ok && listening) {
+    window.clearTimeout(listening.timer)
+    listening = undefined
+    draw(`${card.text}\n\nMicrophone unavailable. Type on the phone.`)
+  }
 }
 
 async function stopListening(): Promise<void> {
@@ -138,7 +140,11 @@ async function stopListening(): Promise<void> {
   draw(`${card.text}\n\nUnderstanding...`)
   try {
     const res = await fetch(`${API}/voice`, { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: pcm })
-    const data = (await res.json()) as { transcript?: string; error?: string; card?: CardView }
+    const data = (await res.json().catch(() => ({ error: `Voice failed (HTTP ${res.status})` }))) as {
+      transcript?: string
+      error?: string
+      card?: CardView
+    }
     console.log(`[gramsight] voice: ${data.error ?? `heard "${data.transcript}"`}`)
     if (data.card) {
       card = { ...card, version: -2 } // force a redraw

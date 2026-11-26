@@ -143,3 +143,22 @@ test('Flow B card: template reason at once, AI reason replaces it with an "AI:" 
   const reasonOf = (b.current() as { reason?: Reason }).reason
   assert.equal(reasonOf?.source, 'ai')
 })
+
+test('OpenRouter model list: a 429 on the first free model falls through to the next; at most two tries', async () => {
+  const tried: string[] = []
+  const flaky = (async (_u: string | URL | Request, init?: RequestInit) => {
+    const model = JSON.parse(String(init?.body)).model as string
+    tried.push(model)
+    if (model === 'a:free') return new Response(JSON.stringify({ error: { code: 429, message: 'rate-limited upstream' } }), { status: 429 })
+    return new Response(JSON.stringify({ choices: [{ message: { content: '{"reason":"ok"}' } }] }), { status: 200 })
+  }) as typeof fetch
+  const p = new OpenRouterProvider('k', 'a:free, b:free, c:free', flaky)
+  assert.deepEqual(await p.completeJson({ system: 's', user: 'u', schema: {}, schemaName: 'x' }), { reason: 'ok' })
+  assert.deepEqual(tried, ['a:free', 'b:free'])
+
+  const allBusy = (async () => new Response('{}', { status: 429 })) as typeof fetch
+  const calls: number[] = []
+  const counting = (async (...a: Parameters<typeof fetch>) => (calls.push(1), allBusy(...a))) as typeof fetch
+  await assert.rejects(new OpenRouterProvider('k', 'a:free,b:free,c:free', counting).completeJson({ system: 's', user: 'u', schema: {}, schemaName: 'x' }), AiBusyError)
+  assert.equal(calls.length, 2)
+})

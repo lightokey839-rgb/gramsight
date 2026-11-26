@@ -88,8 +88,9 @@ export function createApiServer(opts: ApiOptions): Server {
 
       if (url.pathname === '/api/voice') {
         // Raw 16 kHz 16-bit mono PCM from the glasses mic -> transcript -> the same path as a typed command.
-        if (!stt) return send(res, 400, { error: 'Voice is not set up (GROQ_API_KEY). Type the command instead.' })
+        // Read the whole body first: answering before it is consumed resets the connection (proxies turn that into a 500).
         const pcm = await readRaw(req, MAX_AUDIO)
+        if (!stt) return send(res, 400, { error: 'Voice is not set up (GROQ_API_KEY). Type the command instead.' })
         if (pcm.length < 16_000 * 2 * 0.3) return send(res, 200, { transcript: '', error: "Didn't hear anything", card: screen.view() })
         try {
           const transcript = (await stt.transcribe(pcm)).slice(0, 300)

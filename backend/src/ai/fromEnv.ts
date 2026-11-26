@@ -5,7 +5,7 @@
 import Anthropic from '@anthropic-ai/sdk'
 import { optionalEnv } from '../env.ts'
 import { ClaudeProvider, DEFAULT_CLAUDE_MODEL } from './claude.ts'
-import { DEFAULT_OPENROUTER_MODEL, OpenRouterProvider } from './openrouter.ts'
+import { DEFAULT_OPENROUTER_MODELS, OpenRouterProvider } from './openrouter.ts'
 import { type AiProvider, BudgetedAi } from './provider.ts'
 
 export function aiFromEnv(): AiProvider | undefined {
@@ -24,5 +24,5 @@ export function aiFromEnv(): AiProvider | undefined {
     if (choice === 'openrouter') throw new Error('GRAMSIGHT_AI=openrouter needs OPENROUTER_API_KEY')
     return undefined // no key: rules and fixed templates only
   }
-  return new BudgetedAi(new OpenRouterProvider(key, model ?? DEFAULT_OPENROUTER_MODEL), limit)
+  return new BudgetedAi(new OpenRouterProvider(key, model ?? DEFAULT_OPENROUTER_MODELS), limit)
 }
