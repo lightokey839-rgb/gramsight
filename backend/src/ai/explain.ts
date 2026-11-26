@@ -68,7 +68,10 @@ export function safeReason(text: unknown): string | undefined {
 }
 
 export class VerdictExplainer {
-  constructor(private readonly ai?: AiProvider) {}
+  constructor(
+    private readonly ai?: AiProvider,
+    private readonly log: (line: string) => void = () => {},
+  ) {}
 
   /** Immediate, deterministic reason for the card (or undefined when none is needed). */
   quick(v: Verdict): Reason | undefined {
@@ -81,12 +84,14 @@ export class VerdictExplainer {
     const fallback = this.quick(v)
     if (!fallback || !this.ai || v.level === 'ok') return fallback
     try {
-      const raw = (await this.ai.completeJson({ system: SYSTEM, user: facts(v), schema: REASON_SCHEMA, schemaName: 'reason', maxTokens: 80 })) as {
+      const raw = (await this.ai.completeJson({ system: SYSTEM, user: facts(v), schema: REASON_SCHEMA, schemaName: 'reason', maxTokens: 80, timeoutMs: 45_000 })) as {
         reason?: unknown
       }
       const text = safeReason(raw?.reason)
+      this.log(text ? 'AI reason accepted' : 'AI reason rejected by the safety filter; template kept')
       return text ? { text, source: 'ai' } : fallback
-    } catch {
+    } catch (err) {
+      this.log(`AI reason unavailable (${err instanceof Error ? err.message : String(err)}); template kept`)
       return fallback
     }
   }

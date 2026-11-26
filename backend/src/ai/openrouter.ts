@@ -27,7 +27,7 @@ export class OpenRouterProvider implements AiProvider {
     this.model = this.models.join(',')
   }
 
-  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number }): Promise<unknown> {
+  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number; timeoutMs?: number }): Promise<unknown> {
     let last: unknown
     for (const model of this.models.slice(0, this.maxAttempts)) {
       try {
@@ -40,7 +40,7 @@ export class OpenRouterProvider implements AiProvider {
     throw last instanceof AiBusyError ? last : new AiBusyError()
   }
 
-  private async once(model: string, req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number }): Promise<unknown> {
+  private async once(model: string, req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number; timeoutMs?: number }): Promise<unknown> {
     let res: Response
     try {
       res = await this.fetchImpl('https://openrouter.ai/api/v1/chat/completions', {
@@ -62,7 +62,7 @@ export class OpenRouterProvider implements AiProvider {
             { role: 'user', content: req.user },
           ],
         }),
-        signal: AbortSignal.timeout(this.timeoutMs),
+        signal: AbortSignal.timeout(req.timeoutMs ?? this.timeoutMs),
       })
     } catch (err) {
       // Network trouble or a timeout: treated like "busy", so the user is told rather than guessed for.

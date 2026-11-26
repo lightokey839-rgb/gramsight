@@ -304,6 +304,7 @@ export class FlowBController {
         tap: p.state === 'awaiting' && armed ? 'confirm' : 'none',
         doubleTap: 'cancel',
         version: this.version,
+        voice: p.state === 'awaiting' && !armed, // waiting for a spoken "confirm"
       }
     }
     const item = this.items[0]
@@ -317,6 +318,7 @@ export class FlowBController {
       tap: 'none',
       doubleTap: 'cancel',
       version: this.version,
+      voice: !!this.payments && payable(item.verdict), // "send 1 Gram"; nothing to say on a blocked card
     }
   }
 

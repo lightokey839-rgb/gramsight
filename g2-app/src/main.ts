@@ -19,6 +19,8 @@ type CardView = {
   tap: 'confirm' | 'none'
   doubleTap: 'cancel' | 'exit'
   version: number
+  /** The backend marks cards that take a spoken command. */
+  voice?: boolean
 }
 
 const API = '/api' // proxied to the backend (127.0.0.1:8787) by the Vite dev server
@@ -61,8 +63,8 @@ const result = await bridge.createStartUpPageContainer(
 console.log(`[gramsight] ready (page ${result === 0 ? 'created' : `failed: ${result}`})`)
 
 // Cards with nothing to approve take voice: a tap opens the mic ("tap to talk").
-const LISTENABLE = new Set<CardView['kind']>(['request', 'verdict', 'pay'])
-const canTalk = (c: CardView) => LISTENABLE.has(c.kind) && c.tap === 'none'
+
+const canTalk = (c: CardView) => c.voice === true && c.tap === 'none'
 
 function draw(text: string): void {
   mirror.textContent = text
@@ -114,12 +116,17 @@ async function startListening(): Promise<void> {
   // Mark as listening before the (sometimes slow) mic switch, so a tap during start-up stops instead of restarting.
   listening = { chunks: [], timer: window.setTimeout(() => void stopListening(), MAX_LISTEN_MS) }
   console.log('[gramsight] input: listening')
+  // Draw outside the input-event callback: an update sent from inside it can be overwritten.
+  await new Promise((r) => window.setTimeout(r, 0))
   draw(`${card.text}\n\nListening... tap to stop`)
   const ok = await bridge.audioControl(true)
+  console.log(`[gramsight] mic ${ok ? 'on' : 'failed'}`)
   if (!ok && listening) {
     window.clearTimeout(listening.timer)
     listening = undefined
     draw(`${card.text}\n\nMicrophone unavailable. Type on the phone.`)
+  } else if (listening) {
+    draw(`${card.text}\n\nListening... tap to stop`) // switching the mic on can repaint the page
   }
 }
 

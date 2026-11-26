@@ -48,6 +48,8 @@ export type CardView = {
   /** What a double tap does: cancel/dismiss, or exit the app on the idle root card. */
   doubleTap: 'cancel' | 'exit'
   version: number
+  /** True when this card takes a spoken command (the glasses then offer "tap to talk"). */
+  voice?: boolean
 }
 
 const FLASH_MS = 4000
@@ -235,7 +237,7 @@ export class FlowAController {
         `Say: send my ${r.chain ? chainDisplay(r.chain) : 'Solana'} address`,
         this.requests.length > 1 ? 'Double-tap: dismiss   Scroll: next' : 'Double-tap: dismiss',
       ]
-      return { id: r.id, kind: 'request', text: lines.join('\n'), tap: 'none', doubleTap: 'cancel', version: v }
+      return { id: r.id, kind: 'request', text: lines.join('\n'), tap: 'none', doubleTap: 'cancel', version: v, voice: true }
     }
 
     const n = this.store.list().length

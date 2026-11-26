@@ -13,7 +13,7 @@ export class ClaudeProvider implements AiProvider {
     readonly model: string = DEFAULT_CLAUDE_MODEL,
   ) {}
 
-  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number }): Promise<unknown> {
+  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number; timeoutMs?: number }): Promise<unknown> {
     let response
     try {
       response = await this.client.beta.messages.create(

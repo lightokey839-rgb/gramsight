@@ -65,7 +65,7 @@ async function main(): Promise<void> {
   // AI (OpenRouter free model by default, Claude behind GRAMSIGHT_AI=claude): rules first, AI only where it adds something.
   const ai = aiFromEnv()
   const controller = new FlowAController(store, sender, new LayeredIntentParser(ai ? new AiIntentParser(ai) : undefined), Date.now, log)
-  const explainer = new VerdictExplainer(ai)
+  const explainer = new VerdictExplainer(ai, log)
 
   // Address checker: profile wallet card (user account first, vault bot as fallback), saved contacts,
   // lookalikes (vault, contacts, addresses the payer has paid), and tonapi scam flags.

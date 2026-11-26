@@ -17,7 +17,7 @@ export interface AiProvider {
   readonly name: string
   readonly model: string
   /** Returns the parsed JSON object the model produced for this schema. Throws AiBusyError on rate limits. */
-  completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number }): Promise<unknown>
+  completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number; timeoutMs?: number }): Promise<unknown>
 }
 
 /** Parses a model's JSON reply, tolerating a ```json fence around it. */
@@ -64,7 +64,7 @@ export class BudgetedAi implements AiProvider {
     }
   }
 
-  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number }): Promise<unknown> {
+  async completeJson(req: { system: string; user: string; schema: JsonSchema; schemaName: string; maxTokens?: number; timeoutMs?: number }): Promise<unknown> {
     const key = createHash('sha256').update(`${this.inner.model}\n${req.schemaName}\n${req.system}\n${req.user}`).digest('hex')
     const hit = this.cache.get(key)
     if (hit && this.now() - hit.at < this.ttlMs) return hit.value
