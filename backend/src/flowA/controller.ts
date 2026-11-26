@@ -39,7 +39,7 @@ type Confirmation = {
 
 export type CardView = {
   id: string
-  kind: 'idle' | 'request' | 'confirm' | 'sending' | 'sent' | 'error' | 'checking' | 'verdict'
+  kind: 'idle' | 'request' | 'confirm' | 'sending' | 'sent' | 'error' | 'checking' | 'verdict' | 'pay' | 'paying'
   text: string
   /** What a single tap does on this card. */
   tap: 'confirm' | 'none'

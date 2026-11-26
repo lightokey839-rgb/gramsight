@@ -26,6 +26,7 @@ export type VerdictCode =
   | 'their-wallet'
   | 'contact-other-person'
   | 'saved-contact'
+  | 'paid-before'
   | 'own-address'
   | 'new-address'
 
@@ -129,6 +130,10 @@ export class AddressChecker {
     }
 
     const contacts = store.contacts().filter((k) => k.normalized === normalized)
+    const paidBefore = paid.some((p) => {
+      const c = validateForChain('ton', p)
+      return c.ok && c.normalized === normalized
+    })
     const own = store.list().find((e) => e.normalized === normalized)
     const look = findLookalike({ family, display, normalized }, refs)
 
@@ -175,6 +180,7 @@ export class AddressChecker {
       }
       return v('ok', 'saved-contact', `MATCHES SAVED CONTACT ${k.name.toUpperCase()}`, { contact: k.name })
     }
+    if (paidBefore) return v('ok', 'paid-before', 'YOU PAID THIS ADDRESS BEFORE')
     if (own) return v('confirm-twice', 'own-address', 'THIS IS YOUR OWN ADDRESS', { details: [`Your ${entryLabel(own)}`, ...details] })
     return v('confirm-twice', 'new-address', 'NEW ADDRESS, BE CAREFUL', { details })
   }

@@ -85,3 +85,13 @@ export class TonapiReputation implements ReputationSource {
 export interface HistorySource {
   paidAddresses(): Promise<string[]>
 }
+
+/** Merges several history sources; a failing one is skipped. */
+export function combineHistory(...sources: HistorySource[]): HistorySource {
+  return {
+    async paidAddresses() {
+      const lists = await Promise.allSettled(sources.map((s) => s.paidAddresses()))
+      return [...new Set(lists.flatMap((r) => (r.status === 'fulfilled' ? r.value : [])))]
+    },
+  }
+}

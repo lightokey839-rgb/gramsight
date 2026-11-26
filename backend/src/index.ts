@@ -6,6 +6,8 @@
 //   GRAMSIGHT_TELEGRAM=off    don't start TDLib (no listener; use with dry-run for UI work)
 //   GRAMSIGHT_DEV=1           enable POST /api/dev/request (simulate an incoming request)
 //   GRAMSIGHT_BOT=off         don't start the vault bot here
+//   GRAMSIGHT_PAY=live        really pay on TON testnet from the payer wallet (default: dry-run)
+//   GRAMSIGHT_MAX_PAYMENT_GRAM, GRAMSIGHT_DAILY_LIMIT_GRAM   payment limits (default 1 and 3)
 // TDLib allows one client per login database: stop `npm run dev` before running the telegram:* scripts.
 import { loadEnv, optionalEnv } from './env.ts'
 import { runVaultBot } from './bot/run.ts'
@@ -24,8 +26,13 @@ import {
   TdlibProfileSource,
   TonapiReputation,
 } from './checker/sources.ts'
+import { combineHistory } from './checker/sources.ts'
 import { FlowBController } from './flowB/controller.ts'
+import { PaymentLedger, ledgerHistory } from './payments/ledger.ts'
+import { DryRunRail, type PaymentRail, singleRail } from './payments/rail.ts'
+import { TestnetPayerRail } from './payments/testnetPayer.ts'
 import { Screen } from './screen.ts'
+import { fromNano, toNano } from '@ton/core'
 import { closeClient, connectLoggedIn, resolveChatId, type Client } from './telegram.ts'
 import { VaultStore } from './vault/store.ts'
 
@@ -60,13 +67,24 @@ async function main(): Promise<void> {
   if (client) profileSources.push(new TdlibProfileSource(client))
   const botToken = optionalEnv('BOT_TOKEN')
   if (botToken) profileSources.push(new BotProfileSource(new BotApi(botToken)))
+  // Payments (Flow B): dry run unless GRAMSIGHT_PAY=live; limits from .env; every payment in the ledger.
+  const ledger = new PaymentLedger()
+  const payLive = flag('GRAMSIGHT_PAY') === 'live'
+  if (payLive && !optionalEnv('TON_TESTNET_PAYER_MNEMONIC')) throw new Error('GRAMSIGHT_PAY=live needs TON_TESTNET_PAYER_MNEMONIC. Run `npm run ton:new-payer`.')
+  const rail: PaymentRail = payLive ? new TestnetPayerRail() : new DryRunRail(log)
+  const limits = {
+    perPaymentNano: toNano(optionalEnv('GRAMSIGHT_MAX_PAYMENT_GRAM') ?? '1'),
+    dailyNano: toNano(optionalEnv('GRAMSIGHT_DAILY_LIMIT_GRAM') ?? '3'),
+  }
+
+  const history = optionalEnv('TON_TESTNET_PAYER_MNEMONIC') ? combineHistory(new PayerHistory(), ledgerHistory(ledger)) : ledgerHistory(ledger)
   const checker = new AddressChecker({
     store,
     ...(profileSources.length ? { profile: new LayeredProfileSource(profileSources) } : {}),
     ...(flag('GRAMSIGHT_REPUTATION') === 'off' ? {} : { reputation: new TonapiReputation() }),
-    ...(optionalEnv('TON_TESTNET_PAYER_MNEMONIC') ? { history: new PayerHistory() } : {}),
+    history,
   })
-  const flowB = new FlowBController(checker, Date.now, log)
+  const flowB = new FlowBController(checker, Date.now, log, { rails: singleRail(rail), ledger, limits })
   const screen = new Screen(controller, flowB)
   if (client) attachRequestListener(client, controller, log, flowB)
 
@@ -77,6 +95,7 @@ async function main(): Promise<void> {
   server.listen(port, '127.0.0.1', () => {
     log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · intent: rules${claude ? ' + Claude' : ''}${dev ? ' · dev endpoints on' : ''}`)
     log(`checker: profile ${profileSources.length ? (client ? 'user account + bot' : 'bot only') : 'off'} · scam check ${flag('GRAMSIGHT_REPUTATION') === 'off' ? 'off' : 'tonapi'}`)
+    log(`payments: ${payLive ? 'LIVE on TON testnet (payer wallet)' : 'dry-run'} · max ${fromNano(limits.perPaymentNano)} Gram each, ${fromNano(limits.dailyNano)} Gram per 24 h · ledger ${ledger.path}`)
     log(`vault: ${store.path}`)
   })
 

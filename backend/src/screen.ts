@@ -1,5 +1,5 @@
 // One card at a time across both flows. What is on screen decides where input goes.
-// Priority: an in-progress Flow A step (confirm / sending / sent / error) > Flow B verdict cards
+// Priority: an in-progress Flow A step (confirm / sending / sent / error) > Flow B (payment, verdict)
 //           > Flow A address requests > idle home card.
 import type { CardView, FlowAController } from './flowA/controller.ts'
 import type { FlowBController } from './flowB/controller.ts'
@@ -31,14 +31,14 @@ export class Screen implements ScreenLike {
   }
 
   async command(text: string): Promise<CardView> {
-    // Day 4: verdict cards take no spoken command yet (paying from them arrives on Day 5).
-    if (this.owner() === 'b') return this.view()
-    await this.a.command(text)
+    if (this.owner() === 'b') await this.b!.command(text)
+    else await this.a.command(text)
     return this.view()
   }
 
   async tap(cardId: string): Promise<CardView> {
-    if (this.owner() === 'a') await this.a.tap(cardId)
+    if (this.owner() === 'b') await this.b!.tap(cardId)
+    else await this.a.tap(cardId)
     return this.view()
   }
 

@@ -128,7 +128,9 @@ test('addresses paid before are lookalike references; invalid input is blocked',
   const fake = lookalikeOf(paid)
   const history = { paidAddresses: async () => [paid] }
   assert.equal((await new AddressChecker({ store: s, history }).check({ address: fake })).code, 'lookalike')
-  assert.equal((await new AddressChecker({ store: s, history }).check({ address: paid })).code, 'new-address')
+  const again = await new AddressChecker({ store: s, history }).check({ address: paid })
+  assert.equal(again.code, 'paid-before')
+  assert.equal(again.level, 'ok')
   const broken = ADA.slice(0, 10) + (ADA[10] === 'A' ? 'B' : 'A') + ADA.slice(11)
   const invalid = await new AddressChecker({ store: s }).check({ address: broken })
   assert.equal(invalid.code, 'invalid')
