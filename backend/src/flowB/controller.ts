@@ -15,6 +15,7 @@ import { parsePayCommand } from '../payments/command.ts'
 import type { PaymentLedger } from '../payments/ledger.ts'
 import type { RailChooser } from '../payments/rail.ts'
 import { fingerprint } from '../vault/addresses.ts'
+import type { Reason, VerdictExplainer } from '../ai/explain.ts'
 
 export type AddressShare = {
   id: string
@@ -26,6 +27,8 @@ export type AddressShare = {
   messageId?: number
   receivedAt: number
   verdict?: Verdict
+  /** Plain-language "why" for warned or blocked verdicts: a fixed template first, AI wording when available. */
+  reason?: Reason
 }
 
 export type PaymentLimits = { perPaymentNano: bigint; dailyNano: bigint }
@@ -57,12 +60,14 @@ export function verdictCardText(
   v: Verdict | undefined,
   address: string,
   canPay = false,
+  reason?: Reason,
 ): string {
   const head = `ADDRESS FROM ${share.fromName} · ${share.chatTitle}`
   if (!v) return [head, 'Checking...', fingerprint(address)].join('\n')
   const fam = v.family ? ` (${FAMILY_LABEL[v.family]})` : ''
   const lines = [head, v.headline, `${fingerprint(v.address)}${fam}`]
-  const extra = v.details.slice(0, 2).join(' · ')
+  if (reason) lines.push(reason.source === 'ai' ? `AI: ${reason.text}` : reason.text)
+  const extra = v.details.slice(0, reason ? 1 : 2).join(' · ')
   if (extra) lines.push(extra)
   lines.push('')
   if (v.level === 'block') lines.push('Payment blocked.   Double-tap: dismiss')
@@ -82,6 +87,7 @@ export class FlowBController {
     private readonly now: () => number = Date.now,
     private readonly log: (line: string) => void = () => {},
     private readonly payments?: PaymentDeps,
+    private readonly explainer?: VerdictExplainer,
   ) {}
 
   private bump(): void {
@@ -110,8 +116,18 @@ export class FlowBController {
       .check({ address: s.address, ...(s.senderUserId !== undefined ? { senderUserId: s.senderUserId } : {}) })
       .then((v) => {
         item.verdict = v
+        item.reason = this.explainer?.quick(v)
         this.bump()
         this.log(`verdict for chat ${s.chatId}: ${v.code}`)
+        // AI wording arrives later (or never); the template is already on screen, so nothing waits on it.
+        if (this.explainer && item.reason) {
+          void this.explainer.explain(v).then((r) => {
+            if (r && r.source === 'ai') {
+              item.reason = r
+              this.bump()
+            }
+          })
+        }
       })
       .catch((err: unknown) => this.log(`check failed: ${err instanceof Error ? err.message : String(err)}`))
     return item
@@ -266,7 +282,7 @@ export class FlowBController {
     const item = this.items[0]
     if (!item) return undefined
     const count = this.items.length > 1 ? `1/${this.items.length} ` : ''
-    const text = verdictCardText(item, item.verdict, item.address, !!this.payments && payable(item.verdict))
+    const text = verdictCardText(item, item.verdict, item.address, !!this.payments && payable(item.verdict), item.reason)
     return {
       id: item.id,
       kind: item.verdict ? 'verdict' : 'checking',

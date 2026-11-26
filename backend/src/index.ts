@@ -11,7 +11,9 @@
 // TDLib allows one client per login database: stop `npm run dev` before running the telegram:* scripts.
 import { loadEnv, optionalEnv } from './env.ts'
 import { runVaultBot } from './bot/run.ts'
-import { claudeIntentParserFromEnv } from './flowA/claudeIntent.ts'
+import { aiFromEnv } from './ai/fromEnv.ts'
+import { AiIntentParser } from './ai/intent.ts'
+import { VerdictExplainer } from './ai/explain.ts'
 import { FlowAController, type MessageSender } from './flowA/controller.ts'
 import { LayeredIntentParser } from './flowA/intent.ts'
 import { DryRunSender, TdlibSender, attachRequestListener } from './flowA/listener.ts'
@@ -58,8 +60,10 @@ async function main(): Promise<void> {
   if (live && !client) throw new Error('GRAMSIGHT_SEND=live needs the Telegram user account. Run `npm run telegram:login` first.')
 
   const sender: MessageSender = live && client ? new TdlibSender(client) : new DryRunSender(log)
-  const claude = claudeIntentParserFromEnv()
-  const controller = new FlowAController(store, sender, new LayeredIntentParser(claude), Date.now, log)
+  // AI (OpenRouter free model by default, Claude behind GRAMSIGHT_AI=claude): rules first, AI only where it adds something.
+  const ai = aiFromEnv()
+  const controller = new FlowAController(store, sender, new LayeredIntentParser(ai ? new AiIntentParser(ai) : undefined), Date.now, log)
+  const explainer = new VerdictExplainer(ai)
 
   // Address checker: profile wallet card (user account first, vault bot as fallback), saved contacts,
   // lookalikes (vault, contacts, addresses the payer has paid), and tonapi scam flags.
@@ -84,7 +88,7 @@ async function main(): Promise<void> {
     ...(flag('GRAMSIGHT_REPUTATION') === 'off' ? {} : { reputation: new TonapiReputation() }),
     history,
   })
-  const flowB = new FlowBController(checker, Date.now, log, { rails: singleRail(rail), ledger, limits })
+  const flowB = new FlowBController(checker, Date.now, log, { rails: singleRail(rail), ledger, limits }, explainer)
   const screen = new Screen(controller, flowB)
   if (client) attachRequestListener(client, controller, log, flowB)
 
@@ -93,7 +97,7 @@ async function main(): Promise<void> {
     ...(dev ? { dev: { flowA: controller, flowB, ...(client ? { chatId: () => resolveChatId(client!, 'me') } : {}) } } : {}),
   })
   server.listen(port, '127.0.0.1', () => {
-    log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · intent: rules${claude ? ' + Claude' : ''}${dev ? ' · dev endpoints on' : ''}`)
+    log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · AI: ${ai ? `${ai.name} ${ai.model}` : 'off (rules and templates only)'}${dev ? ' · dev endpoints on' : ''}`)
     log(`checker: profile ${profileSources.length ? (client ? 'user account + bot' : 'bot only') : 'off'} · scam check ${flag('GRAMSIGHT_REPUTATION') === 'off' ? 'off' : 'tonapi'}`)
     log(`payments: ${payLive ? 'LIVE on TON testnet (payer wallet)' : 'dry-run'} · max ${fromNano(limits.perPaymentNano)} Gram each, ${fromNano(limits.dailyNano)} Gram per 24 h · ledger ${ledger.path}`)
     log(`vault: ${store.path}`)

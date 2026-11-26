@@ -10,6 +10,7 @@ import { type Chain, CHAINS, type Family, chainDisplay, fingerprint } from '../v
 import { type VaultEntry, VaultStore, entryLabel } from '../vault/store.ts'
 import { type IntentParser, RuleIntentParser } from './intent.ts'
 import { quoteUntrusted } from './requests.ts'
+import { AiBusyError } from '../ai/provider.ts'
 
 export interface MessageSender {
   /** Sends text to a Telegram chat as the user. Resolves with the sent message id. Must not retry by itself. */
@@ -35,6 +36,7 @@ type Confirmation = {
   entry: VaultEntry
   message: string
   state: 'awaiting' | 'sending'
+  viaAi: boolean
 }
 
 export type CardView = {
@@ -101,6 +103,11 @@ export class FlowAController {
       intent = await this.parser.parse(text, { labels, requestChain: request.chain })
     } catch (err) {
       this.log(`intent parser failed: ${err instanceof Error ? err.message : String(err)}`)
+      if (err instanceof AiBusyError) {
+        // Say so plainly instead of guessing: the user can repeat it or use the simple phrase.
+        this.setFlash('error', `AI busy, try again.\nOr say: send my ${request.chain ? chainDisplay(request.chain) : 'Solana'} address`)
+        return this.view()
+      }
       intent = { action: 'unknown' as const }
     }
 
@@ -147,6 +154,7 @@ export class FlowAController {
       entry,
       message: buildAddressReply(entry),
       state: 'awaiting',
+      viaAi: intent.viaAi === true,
     }
     this.flash = undefined
     this.bump()
@@ -207,7 +215,7 @@ export class FlowAController {
     if (c) {
       const lines = [
         `SEND TO ${c.request.fromName} · ${c.request.chatTitle}`,
-        entryLabel(c.entry),
+        c.viaAi ? `${entryLabel(c.entry)}   (understood by AI)` : entryLabel(c.entry),
         fingerprint(c.entry.address),
         '',
         c.state === 'sending' ? 'Sending…' : 'Tap: send      Double-tap: cancel',

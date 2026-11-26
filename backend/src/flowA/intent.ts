@@ -4,7 +4,7 @@ import { type Chain, parseChain } from '../vault/addresses.ts'
 import { chainHintIn } from './requests.ts'
 
 export type Intent =
-  | { action: 'send_address'; chain?: Chain; name?: string }
+  | { action: 'send_address'; chain?: Chain; name?: string; viaAi?: boolean }
   | { action: 'cancel' }
   | { action: 'next' }
   | { action: 'unknown' }
