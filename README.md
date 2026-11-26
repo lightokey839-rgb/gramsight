@@ -130,10 +130,31 @@ cd backend; npm run dev
 | `GRAMSIGHT_DEV=1` | Enables `POST /api/dev/request` and the phone page's "simulate a request" form |
 | `GRAMSIGHT_TELEGRAM=off` | Don't start TDLib (UI work with dry-run) |
 | `GRAMSIGHT_BOT=off` | Don't start the vault bot in this process |
-| `ANTHROPIC_API_KEY` | Optional. Claude reads command phrasing the built-in rules don't understand. Off when unset. |
+| `OPENROUTER_API_KEY` | AI through OpenRouter free models. Without it: built-in rules and fixed explanations only. |
+| `GRAMSIGHT_AI` | `openrouter` (default with a key), `claude` (paid, needs `ANTHROPIC_API_KEY`) or `off` |
+| `GRAMSIGHT_INTENT_MODEL` | Model id(s), comma-separated. The next one is tried when a free model is rate-limited. |
+| `GRAMSIGHT_AI_DAILY_LIMIT` | AI requests per day before "AI busy" (default 40; free OpenRouter models allow about 50) |
+| `GROQ_API_KEY` | Voice: Groq Whisper speech-to-text (free plan). Without it, type the command on the phone page. |
 | `GRAMSIGHT_PAY=live` | Really pay on **TON testnet** from the testnet payer wallet. **Default is dry-run.** |
-| `GRAMSIGHT_MAX_PAYMENT_GRAM`, `GRAMSIGHT_DAILY_LIMIT_GRAM` | Payment limits: per payment and per rolling 24 hours (default 1 and 3) |
+| `GRAMSIGHT_MAX_PAYMENT_GRAM`, `GRAMSIGHT_DAILY_LIMIT_GRAM` | Hands-free limits: per payment and per rolling 24 hours (default 1 and 3) |
+| `GRAMSIGHT_TONCONNECT_MANIFEST_URL` | Turns on the wallet path (TON Connect). Public HTTPS URL of `docs/tonconnect/tonconnect-manifest.json`. |
+| `GRAMSIGHT_WALLET_MAX_GRAM` | Max Gram per wallet-approved payment (default 10) |
 | `TONAPI_KEY` | Optional tonapi.io key for higher scam-check rate limits |
+
+### AI, voice and your wallet: one-time setup
+
+1. **AI (free):** create a key at openrouter.ai → Keys and set `OPENROUTER_API_KEY`.
+   - Free models are sometimes rate-limited upstream. Gramsight then shows a fixed explanation, or "AI busy, try again" for a command its rules didn't understand.
+   - It never guesses.
+2. **Voice (free plan):** create a key at console.groq.com → API Keys and set `GROQ_API_KEY`.
+   - On a request or payable verdict card, **tap to talk**, speak, then tap again (or wait 6 s).
+   - Only the short command audio goes to Groq, and nothing is stored.
+3. **Your testnet wallet for TON Connect:**
+   - Install Tonkeeper and add a **testnet** account (Tonkeeper's docs put it under Add Wallet → developer options).
+   - Fund it once from @testgiver_ton_bot.
+   - Never use your real Gram Wallet; that is mainnet.
+   - Host `docs/tonconnect/tonconnect-manifest.json` over HTTPS. Easiest: make the repo public on GitHub and use the raw URL. Put your user name into the manifest and set `GRAMSIGHT_TONCONNECT_MANIFEST_URL`.
+   - Then open the phone page, press **Connect wallet**, and approve in Tonkeeper.
 
 ### Flow A on the glasses (someone asks for your address)
 
