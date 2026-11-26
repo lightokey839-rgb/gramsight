@@ -2,22 +2,26 @@
 
 **Gramsight checks who you're paying before you pay, without touching your phone.**
 
-Hands-free crypto address safety for Even Realities G2 smart glasses, inside Telegram. Like Confirmation of Payee at UK banks, it checks that an address belongs to the person you think it does (the wallet on their own Telegram profile) before any money moves.
+An AI wallet assistant for Telegram, on your Even Realities G2 glasses. Like Confirmation of Payee at UK banks, it checks that an address belongs to the person you think it does (the wallet on their own Telegram profile) before any money moves, and it hands out your own addresses safely when someone asks.
 
-- **Give out your address (Flow A):** someone in a Telegram chat asks for your address. The request shows on your glasses, you say "send my Solana address to Ada", check the confirmation card and tap the ring. The reply goes out from your own Telegram account. The address comes from your owner-only vault bot, never from the AI.
-- **Check before you pay (Flow B):** someone sends you an address. The glasses show a short verdict ("Matches their Telegram wallet", "New address, be careful", "Looks like a lookalike"). If it is safe and you say "send 10 Gram", one ring tap sends a real **TON testnet** Gram transfer.
+- **Give out your address (Flow A):** someone in a Telegram chat asks for your address. The request shows on your glasses, you say "can u send Ada my sol addy", check the confirmation card and tap. The reply goes out from your own Telegram account. The address comes from your owner-only vault, never from the AI.
+- **Check before you pay (Flow B):** someone sends you an address. The glasses show a short verdict ("Matches their Telegram wallet", "New address, be careful", "Lookalike of contact Ada") and a one-line reason in plain words. If it is safe and you say "send 1 Gram", one tap sends a real **TON testnet** Gram transfer. A larger payment, or one to a new address, goes to your own wallet app for approval through TON Connect.
 
 Built for the **Heads Up: Even Realities Hackathon** (DoraHacks, 23 to 29 Nov 2026).
 
-> **Testnet only.** The hackathon build pays from a testnet-only payer wallet funded with test Gram from a faucet. It never touches real funds, never holds user funds and gives no financial advice.
+> **Testnet only.** The hackathon build pays on TON testnet: hands-free from a testnet-only payer wallet funded from a faucet, or from your own testnet wallet app through TON Connect. It never touches real funds, never holds user funds and gives no financial advice.
 
 ## Tracks entered
 
-- **Messaging & News** (Telegram: vault bot + user-account client)
-- **Crypto & DeFi** (Gram Wallet on TON testnet; fallback: Hyperliquid testnet `usdSend`)
-- Eligible for **Best Telegram integration**
+- **Crypto & DeFi**: Gram Wallet on TON (testnet). Payments go through the hands-free testnet payer or TON Connect to your own wallet.
+- **AI Assistants & Work**: OpenRouter (a free model by default; Claude behind a switch). The AI understands natural phrasing and explains warnings in one plain line. It never sees or writes an address.
+- **Best Telegram integration** (open to every track): the owner-only vault bot, plus your own Telegram account through TDLib, which reads requests, replies as you, and reads the Gram Wallet card on people's profiles.
 
-Flow B joins both in one flow: an address arrives in a Telegram chat, is checked against the sender's Telegram profile wallet (Gram Wallet), and is paid on TON testnet.
+The organizers confirmed on 26 Nov that a project may enter two tracks, and that Telegram is fine on top of any track. One flow joins both tracks:
+1. An address arrives in a Telegram chat.
+2. It is checked against the sender's Telegram profile wallet (Gram Wallet).
+3. The AI explains the verdict.
+4. You pay on TON testnet.
 
 ## From testnet to Gram Wallet on mainnet
 
