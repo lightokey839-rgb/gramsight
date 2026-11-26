@@ -127,6 +127,9 @@ cd backend; npm run dev
 | `GRAMSIGHT_TELEGRAM=off` | Don't start TDLib (UI work with dry-run) |
 | `GRAMSIGHT_BOT=off` | Don't start the vault bot in this process |
 | `ANTHROPIC_API_KEY` | Optional. Claude reads command phrasing the built-in rules don't understand. Off when unset. |
+| `GRAMSIGHT_PAY=live` | Really pay on **TON testnet** from the testnet payer wallet. **Default is dry-run.** |
+| `GRAMSIGHT_MAX_PAYMENT_GRAM`, `GRAMSIGHT_DAILY_LIMIT_GRAM` | Payment limits: per payment and per rolling 24 hours (default 1 and 3) |
+| `TONAPI_KEY` | Optional tonapi.io key for higher scam-check rate limits |
 
 ### Flow A on the glasses (someone asks for your address)
 
@@ -163,6 +166,23 @@ When an address arrives in a chat, Gramsight checks it in layers and shows one v
 | Matches their Telegram wallet, matches saved contact | One tap |
 
 A layer that fails or times out (4 s) is shown as "couldn't check", never as safe. A full check takes about 1.3 s. Try it from the terminal with `npm run check:address -- <address> [--from @username]`. Proof: [docs/proof/day4-checker.md](docs/proof/day4-checker.md).
+
+Only transfers the payer wallet signed count as "paid before". Dust that bounced off the wallet does not count, because that is how address poisoning plants lookalikes.
+
+### Paying from the verdict card (Flow B)
+
+1. On a verdict card that allows payment, say (for now, type) **"send 1 Gram"**. Code reads the amount and the token; the AI and the chat text never do.
+2. The payment card shows the recipient, amount, network (TON testnet), the address's start, middle and end, and the verdict.
+3. If the verdict needs it (new address, not their Telegram wallet), say **"confirm"** first. Until then, a tap does nothing.
+4. **Tap** to pay. The glasses show "Paying…" at once, then "SENT 1 Gram → Ada · tx …". A double-tap cancels before the tap, never after.
+
+Guards enforced in code:
+- Blocked verdicts never reach a payment card.
+- Only TON addresses can be paid.
+- Limits apply per payment and per rolling 24 hours. They are counted from a ledger on disk, so a restart doesn't reset them.
+- One tap pays at most once. A failed or unconfirmed payment is reported, never retried.
+
+The payment step is pluggable. Today it is the hands-free testnet payer, or a dry run by default. A TON Connect step, where you approve in your own wallet app for larger payments or new addresses, can plug in without changing the glasses flow. Proof: [docs/proof/day5-payments.md](docs/proof/day5-payments.md).
 
 ### The address vault bot
 
