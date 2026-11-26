@@ -9,6 +9,7 @@ import type { ProfileWalletSource } from '../src/checker/sources.ts'
 import { FlowAController } from '../src/flowA/controller.ts'
 import { FlowBController } from '../src/flowB/controller.ts'
 import { parsePayCommand } from '../src/payments/command.ts'
+import { signedTransferDestinations } from '../src/checker/payerHistory.ts'
 import { PaymentLedger, ledgerHistory } from '../src/payments/ledger.ts'
 import { type PaymentRail, type PaymentRequest, singleRail } from '../src/payments/rail.ts'
 import { Screen } from '../src/screen.ts'
@@ -176,6 +177,31 @@ test('double-tap cancels a waiting payment but never one in flight; the next che
   const again = t.screen.view()
   assert.equal(again.kind, 'verdict')
   assert.match(again.text, /YOU PAID THIS ADDRESS BEFORE/)
+})
+
+test('history counts only wallet-signed transfers: a bounced dust message is not "paid before"', () => {
+  const paid = Address.parse(ADA)
+  const spammer = Address.parse(NEW)
+  const out = (dest: Address, bounced = false) => ({ info: { type: 'internal', dest, bounced } })
+  const txs = [
+    { inMessage: { info: { type: 'external-in' } }, outMessages: { values: () => [out(paid)] } }, // our signed transfer
+    { inMessage: { info: { type: 'internal' } }, outMessages: { values: () => [out(spammer)] } }, // dust bounced back
+    { inMessage: null, outMessages: { values: () => [out(spammer)] } },
+  ]
+  const list = signedTransferDestinations(txs)
+  assert.equal(list.length, 1)
+  assert.ok(Address.parse(list[0]).equals(paid))
+})
+
+test('dry-run payments never count as trust or against the limits', () => {
+  const ledger = new PaymentLedger(join(dir, 'dryrun-ledger.json'))
+  const base = { at: new Date().toISOString(), to: ADA, normalized: 'x', amountNano: toNano('1').toString(), verdict: 'new-address' }
+  ledger.add({ ...base, rail: 'dry-run', status: 'confirmed' })
+  assert.equal(ledger.spentSince(0), 0n)
+  assert.equal(ledger.sent().length, 0)
+  ledger.add({ ...base, rail: 'testnet-payer', status: 'submitted' })
+  assert.equal(ledger.spentSince(0), toNano('1'))
+  assert.equal(ledger.sent().length, 1)
 })
 
 test('only TON addresses can be paid', async () => {

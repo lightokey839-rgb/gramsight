@@ -47,27 +47,31 @@ export class PaymentLedger {
     this.save(all)
   }
 
-  /** Total counted against the daily limit: everything not known to have failed, in the last 24 hours. */
+  /**
+   * Total counted against the daily limit: real payments (not dry runs) not known to have failed,
+   * in the window. A started payment counts until it is known to have failed.
+   */
   spentSince(sinceMs: number): bigint {
     return this.list()
-      .filter((p) => p.status !== 'failed' && Date.parse(p.at) >= sinceMs)
+      .filter((p) => p.rail !== 'dry-run' && p.status !== 'failed' && Date.parse(p.at) >= sinceMs)
       .reduce((sum, p) => sum + BigInt(p.amountNano), 0n)
   }
 
-  /** Recipients of payments that went out (confirmed or submitted). */
+  /** Real payments that went out (confirmed or submitted). Dry runs never count as trust. */
+  sent(): PaymentRecord[] {
+    return this.list().filter((p) => p.rail !== 'dry-run' && (p.status === 'confirmed' || p.status === 'submitted'))
+  }
+
   paidNormalized(): Set<string> {
-    return new Set(this.list().filter((p) => p.status === 'confirmed' || p.status === 'submitted').map((p) => p.normalized))
+    return new Set(this.sent().map((p) => p.normalized))
   }
 }
 
-/** The ledger as a checker history source: recipients of payments that went out. */
+/** The ledger as a checker history source: recipients of real payments that went out. */
 export function ledgerHistory(ledger: PaymentLedger) {
   return {
     async paidAddresses(): Promise<string[]> {
-      return ledger
-        .list()
-        .filter((p) => p.status === 'confirmed' || p.status === 'submitted')
-        .map((p) => p.to)
+      return ledger.sent().map((p) => p.to)
     },
   }
 }
