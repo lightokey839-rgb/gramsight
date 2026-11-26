@@ -218,6 +218,7 @@ document.querySelector<HTMLFormElement>('#cmd')!.addEventListener('submit', (e) 
   const text = input.value.trim()
   if (!text) return
   input.value = ''
+  if (!busy) draw(`${card.text}\n\nThinking...`) // the AI fallback can take 10+ s on free models
   void act(`command "${text}"`, '/command', { text })
 })
 

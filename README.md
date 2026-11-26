@@ -267,8 +267,20 @@ These are unit tests for address validation, secret detection, the vault store, 
 No Gramsight code existed before the build week started on 23 Nov 2026 (working name until then: SafeGlance). Everything in this repo was written during the hackathon, except:
 
 - `g2-app/` started as an unmodified copy of the official [`even-realities/evenhub-templates/minimal`](https://github.com/even-realities/evenhub-templates) template (commit `1f50dec`). Every change after that commit is ours.
-- Open-source libraries, used as published: Even Hub SDK, CLI and simulator (`@evenrealities/*`), TDLib 1.8.70 via `tdl` and `prebuilt-tdlib`, TON SDK (`@ton/ton`, `@ton/core`, `@ton/crypto`), `dotenv`, `tsx`, Vite, TypeScript.
-- Public APIs: Telegram Bot API, Telegram MTProto API, toncenter (TON testnet).
+- Open-source libraries, used as published:
+  - Even Hub SDK, CLI and simulator (`@evenrealities/*`);
+  - TDLib 1.8.70 via `tdl` and `prebuilt-tdlib`;
+  - TON SDK (`@ton/ton`, `@ton/core`, `@ton/crypto`) and TON Connect (`@tonconnect/sdk`);
+  - `@noble/hashes`, `@scure/base`, `@scure/bip39` (checksums, base58/bech32, the BIP39 word list);
+  - the Anthropic SDK (`@anthropic-ai/sdk`, only for the optional Claude provider);
+  - `qrcode`, `dotenv`, `tsx`, Vite, TypeScript.
+- Public APIs:
+  - Telegram Bot API and Telegram MTProto API;
+  - toncenter (TON testnet) and tonapi.io (scam flags);
+  - OpenRouter (AI);
+  - Groq (speech-to-text);
+  - the TON Connect bridge.
+- The 180×180 wallet icon in `docs/tonconnect/` was generated during the hackathon.
 
 ## Path to launch in Even Hub
 
