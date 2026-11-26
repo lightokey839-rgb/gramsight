@@ -7,6 +7,7 @@ import type { FlowBController } from './flowB/controller.ts'
 import type { ScreenLike } from './screen.ts'
 import type { TonConnectRail } from './payments/tonconnect.ts'
 import QRCode from 'qrcode'
+import { type Transcriber, VoiceBusyError } from './voice/groq.ts'
 
 const MAX_BODY = 8 * 1024
 
@@ -34,6 +35,24 @@ function readJson(req: IncomingMessage): Promise<Record<string, unknown>> {
   })
 }
 
+const MAX_AUDIO = 16_000 * 2 * 12 // 12 s of 16 kHz, 16-bit mono PCM
+
+function readRaw(req: IncomingMessage, max: number): Promise<Buffer> {
+  return new Promise((resolve, reject) => {
+    let size = 0
+    const chunks: Buffer[] = []
+    req.on('data', (c: Buffer) => {
+      size += c.length
+      if (size > max) {
+        reject(new Error('audio too long'))
+        req.destroy()
+      } else chunks.push(c)
+    })
+    req.on('end', () => resolve(Buffer.concat(chunks)))
+    req.on('error', reject)
+  })
+}
+
 function send(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, { 'content-type': 'application/json', 'cache-control': 'no-store' })
   res.end(JSON.stringify(body))
@@ -47,10 +66,12 @@ export type ApiOptions = {
   dev?: { flowA?: FlowAController; flowB?: FlowBController; chatId?: () => Promise<number> }
   /** TON Connect pairing for the phone page. Undefined when no manifest URL is configured. */
   wallet?: TonConnectRail
+  /** Speech-to-text for POST /api/voice. Undefined when no key is configured (typed commands still work). */
+  stt?: Transcriber
 }
 
 export function createApiServer(opts: ApiOptions): Server {
-  const { screen, dev, wallet } = opts
+  const { screen, dev, wallet, stt } = opts
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost')
@@ -64,6 +85,21 @@ export function createApiServer(opts: ApiOptions): Server {
         return send(res, 200, wallet.status())
       }
       if (req.method !== 'POST') return send(res, 404, { error: 'not found' })
+
+      if (url.pathname === '/api/voice') {
+        // Raw 16 kHz 16-bit mono PCM from the glasses mic -> transcript -> the same path as a typed command.
+        if (!stt) return send(res, 400, { error: 'Voice is not set up (GROQ_API_KEY). Type the command instead.' })
+        const pcm = await readRaw(req, MAX_AUDIO)
+        if (pcm.length < 16_000 * 2 * 0.3) return send(res, 200, { transcript: '', error: "Didn't hear anything", card: screen.view() })
+        try {
+          const transcript = (await stt.transcribe(pcm)).slice(0, 300)
+          if (!transcript) return send(res, 200, { transcript: '', error: "Didn't catch that", card: screen.view() })
+          return send(res, 200, { transcript, card: await screen.command(transcript) })
+        } catch (err) {
+          const msg = err instanceof VoiceBusyError ? err.message : 'Voice failed, try again'
+          return send(res, 200, { transcript: '', error: msg, card: screen.view() })
+        }
+      }
 
       const body = await readJson(req)
       switch (url.pathname) {

@@ -60,12 +60,20 @@ const result = await bridge.createStartUpPageContainer(
 )
 console.log(`[gramsight] ready (page ${result === 0 ? 'created' : `failed: ${result}`})`)
 
+// Cards with nothing to approve take voice: a tap opens the mic ("tap to talk").
+const LISTENABLE = new Set<CardView['kind']>(['request', 'verdict', 'pay'])
+const canTalk = (c: CardView) => LISTENABLE.has(c.kind) && c.tap === 'none'
+
+function draw(text: string): void {
+  mirror.textContent = text
+  bridge.textContainerUpgrade(new TextContainerUpgrade({ containerID: 1, containerName: 'main', content: text }))
+}
+
 function render(next: CardView): void {
   const changed = next.id !== card.id || next.version !== card.version || next.text !== card.text
   card = next
   if (!changed) return
-  mirror.textContent = next.text
-  bridge.textContainerUpgrade(new TextContainerUpgrade({ containerID: 1, containerName: 'main', content: next.text }))
+  draw(canTalk(next) ? `${next.text}\nTap: talk` : next.text)
 }
 
 async function api(path: string, body?: unknown): Promise<CardView> {
@@ -90,8 +98,62 @@ async function act(label: string, path: string, body: unknown = {}): Promise<voi
   }
 }
 
+// Voice: collect the mic's 16 kHz PCM while listening, then send it to the backend for speech-to-text.
+let listening: { chunks: Uint8Array[]; timer: number } | undefined
+const MAX_LISTEN_MS = 6000
+
+function toBytes(p: unknown): Uint8Array {
+  if (p instanceof Uint8Array) return p
+  if (Array.isArray(p)) return Uint8Array.from(p as number[])
+  if (typeof p === 'string') return Uint8Array.from(atob(p), (c) => c.charCodeAt(0))
+  return new Uint8Array()
+}
+
+async function startListening(): Promise<void> {
+  if (listening || busy) return
+  const ok = await bridge.audioControl(true)
+  if (!ok) {
+    draw(`${card.text}\n\nMicrophone unavailable. Type on the phone.`)
+    return
+  }
+  listening = { chunks: [], timer: window.setTimeout(() => void stopListening(), MAX_LISTEN_MS) }
+  console.log('[gramsight] input: listening')
+  draw(`${card.text}\n\nListening... tap to stop`)
+}
+
+async function stopListening(): Promise<void> {
+  const l = listening
+  if (!l) return
+  listening = undefined
+  window.clearTimeout(l.timer)
+  await bridge.audioControl(false)
+  const size = l.chunks.reduce((n, c) => n + c.length, 0)
+  const pcm = new Uint8Array(size)
+  let o = 0
+  for (const c of l.chunks) {
+    pcm.set(c, o)
+    o += c.length
+  }
+  busy = true
+  draw(`${card.text}\n\nUnderstanding...`)
+  try {
+    const res = await fetch(`${API}/voice`, { method: 'POST', headers: { 'content-type': 'application/octet-stream' }, body: pcm })
+    const data = (await res.json()) as { transcript?: string; error?: string; card?: CardView }
+    console.log(`[gramsight] voice: ${data.error ?? `heard "${data.transcript}"`}`)
+    if (data.card) {
+      card = { ...card, version: -2 } // force a redraw
+      render(data.card)
+    }
+    if (data.error) draw(`${card.text}\n\n${data.error}`)
+  } catch {
+    draw(`${card.text}\n\nVoice failed. Type on the phone.`)
+  } finally {
+    busy = false
+  }
+}
+
 async function poll(): Promise<void> {
-  if (busy) return
+  if (busy || listening) return
   try {
     render(await api('/card'))
   } catch {
@@ -109,9 +171,17 @@ function eventTypeOf(envelope?: { eventType?: OsEventTypeList }): OsEventTypeLis
 }
 
 bridge.onEvenHubEvent((event) => {
+  if (event.audioEvent) {
+    if (listening) listening.chunks.push(toBytes(event.audioEvent.audioPcm))
+    return
+  }
   const types = [eventTypeOf(event.sysEvent), eventTypeOf(event.textEvent)]
   const is = (t: OsEventTypeList) => types.includes(t)
 
+  if (listening && is(OsEventTypeList.CLICK_EVENT)) {
+    void stopListening()
+    return
+  }
   if (is(OsEventTypeList.DOUBLE_CLICK_EVENT)) {
     if (card.doubleTap === 'exit') {
       console.log('[gramsight] input: double-tap on home card, exiting')
@@ -121,6 +191,7 @@ bridge.onEvenHubEvent((event) => {
   }
   if (is(OsEventTypeList.CLICK_EVENT)) {
     if (card.tap === 'confirm') void act('tap', '/tap', { cardId: card.id })
+    else if (canTalk(card)) void startListening()
     else console.log(`[gramsight] input: tap on ${card.kind} (no action)`)
     return
   }

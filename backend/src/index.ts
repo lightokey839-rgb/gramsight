@@ -33,6 +33,7 @@ import { FlowBController } from './flowB/controller.ts'
 import { PaymentLedger, ledgerHistory } from './payments/ledger.ts'
 import { DryRunRail, type PaymentRail, twoPathChooser } from './payments/rail.ts'
 import { TonConnectRail } from './payments/tonconnect.ts'
+import { transcriberFromEnv } from './voice/groq.ts'
 import { TestnetPayerRail } from './payments/testnetPayer.ts'
 import { Screen } from './screen.ts'
 import { fromNano, toNano } from '@ton/core'
@@ -98,14 +99,17 @@ async function main(): Promise<void> {
   const screen = new Screen(controller, flowB)
   if (client) attachRequestListener(client, controller, log, flowB)
 
+  const stt = transcriberFromEnv()
   const server = createApiServer({
     screen,
+    ...(stt ? { stt } : {}),
     ...(wallet ? { wallet } : {}),
     ...(dev ? { dev: { flowA: controller, flowB, ...(client ? { chatId: () => resolveChatId(client!, 'me') } : {}) } } : {}),
   })
   server.listen(port, '127.0.0.1', () => {
     log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · AI: ${ai ? `${ai.name} ${ai.model}` : 'off (rules and templates only)'}${dev ? ' · dev endpoints on' : ''}`)
     log(`checker: profile ${profileSources.length ? (client ? 'user account + bot' : 'bot only') : 'off'} · scam check ${flag('GRAMSIGHT_REPUTATION') === 'off' ? 'off' : 'tonapi'}`)
+    log(`voice: ${stt ? 'Groq Whisper' : 'off (set GROQ_API_KEY); typed commands work'}`)
     log(`wallet path (TON Connect): ${wallet ? 'on; pair it on the phone page' : 'off (set GRAMSIGHT_TONCONNECT_MANIFEST_URL)'}`)
     log(`payments: ${payLive ? 'LIVE on TON testnet (payer wallet)' : 'dry-run'} · max ${fromNano(limits.perPaymentNano)} Gram each, ${fromNano(limits.dailyNano)} Gram per 24 h · ledger ${ledger.path}`)
     log(`vault: ${store.path}`)
