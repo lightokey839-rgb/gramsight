@@ -39,6 +39,11 @@
       .row { display: flex; gap: 8px; }
       .row input { flex: 1; }
       .note { font-size: 12px; color: #A3A3A3; }
+      h2 { font-size: 16px; margin: 24px 0 4px; }
+      #wallet { border-top: 1px solid #3A3A3A; margin-top: 8px; }
+      .qr { background: #FFFFFF; border-radius: 8px; padding: 8px; width: 220px; max-width: 100%; box-sizing: border-box; }
+      .qr svg { display: block; width: 100%; height: auto; }
+      a { color: #7CFC8A; }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -63,6 +68,21 @@
           <button type="submit">Simulate</button>
         </div>
       </form>
+
+      <section id="wallet" aria-labelledby="walletTitle">
+        <h2 id="walletTitle">Your testnet wallet (TON Connect)</h2>
+        <p class="sub" id="walletStatus">Checking…</p>
+        <p class="note">Used for new addresses, warnings and larger payments: you approve them in your own wallet app. Use a <b>testnet</b> account, never your real Gram Wallet.</p>
+        <div class="row">
+          <button type="button" id="walletConnect">Connect wallet</button>
+          <button type="button" id="walletDisconnect" hidden>Disconnect</button>
+        </div>
+        <div id="walletPair" hidden>
+          <p class="note">Scan with your phone's camera, or open the link on the phone:</p>
+          <div id="walletQr" class="qr"></div>
+          <p><a id="walletLink" href="#" rel="noopener">Open in Tonkeeper</a></p>
+        </div>
+      </section>
 
       <p class="note">Testnet build. Addresses come from your owner-only vault, never from the AI or the chat.</p>
     </main>

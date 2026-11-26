@@ -31,7 +31,8 @@ import {
 import { combineHistory } from './checker/sources.ts'
 import { FlowBController } from './flowB/controller.ts'
 import { PaymentLedger, ledgerHistory } from './payments/ledger.ts'
-import { DryRunRail, type PaymentRail, singleRail } from './payments/rail.ts'
+import { DryRunRail, type PaymentRail, twoPathChooser } from './payments/rail.ts'
+import { TonConnectRail } from './payments/tonconnect.ts'
 import { TestnetPayerRail } from './payments/testnetPayer.ts'
 import { Screen } from './screen.ts'
 import { fromNano, toNano } from '@ton/core'
@@ -79,7 +80,12 @@ async function main(): Promise<void> {
   const limits = {
     perPaymentNano: toNano(optionalEnv('GRAMSIGHT_MAX_PAYMENT_GRAM') ?? '1'),
     dailyNano: toNano(optionalEnv('GRAMSIGHT_DAILY_LIMIT_GRAM') ?? '3'),
+    walletMaxNano: toNano(optionalEnv('GRAMSIGHT_WALLET_MAX_GRAM') ?? '10'),
   }
+  // Path 2: TON Connect to the user's own testnet wallet, for new addresses, warnings and larger amounts.
+  const manifestUrl = optionalEnv('GRAMSIGHT_TONCONNECT_MANIFEST_URL')
+  const wallet = manifestUrl ? TonConnectRail.fromManifest(manifestUrl) : undefined
+  if (wallet) void wallet.init()
 
   const history = optionalEnv('TON_TESTNET_PAYER_MNEMONIC') ? combineHistory(new PayerHistory(), ledgerHistory(ledger)) : ledgerHistory(ledger)
   const checker = new AddressChecker({
@@ -88,17 +94,19 @@ async function main(): Promise<void> {
     ...(flag('GRAMSIGHT_REPUTATION') === 'off' ? {} : { reputation: new TonapiReputation() }),
     history,
   })
-  const flowB = new FlowBController(checker, Date.now, log, { rails: singleRail(rail), ledger, limits }, explainer)
+  const flowB = new FlowBController(checker, Date.now, log, { rails: twoPathChooser(rail, wallet, limits.perPaymentNano), ledger, limits }, explainer)
   const screen = new Screen(controller, flowB)
   if (client) attachRequestListener(client, controller, log, flowB)
 
   const server = createApiServer({
     screen,
+    ...(wallet ? { wallet } : {}),
     ...(dev ? { dev: { flowA: controller, flowB, ...(client ? { chatId: () => resolveChatId(client!, 'me') } : {}) } } : {}),
   })
   server.listen(port, '127.0.0.1', () => {
     log(`API on http://127.0.0.1:${port} · sending: ${live ? 'LIVE as your account' : 'dry-run'} · AI: ${ai ? `${ai.name} ${ai.model}` : 'off (rules and templates only)'}${dev ? ' · dev endpoints on' : ''}`)
     log(`checker: profile ${profileSources.length ? (client ? 'user account + bot' : 'bot only') : 'off'} · scam check ${flag('GRAMSIGHT_REPUTATION') === 'off' ? 'off' : 'tonapi'}`)
+    log(`wallet path (TON Connect): ${wallet ? 'on; pair it on the phone page' : 'off (set GRAMSIGHT_TONCONNECT_MANIFEST_URL)'}`)
     log(`payments: ${payLive ? 'LIVE on TON testnet (payer wallet)' : 'dry-run'} · max ${fromNano(limits.perPaymentNano)} Gram each, ${fromNano(limits.dailyNano)} Gram per 24 h · ledger ${ledger.path}`)
     log(`vault: ${store.path}`)
   })

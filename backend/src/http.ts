@@ -5,6 +5,8 @@ import type { FlowAController } from './flowA/controller.ts'
 import { chainHintIn } from './flowA/requests.ts'
 import type { FlowBController } from './flowB/controller.ts'
 import type { ScreenLike } from './screen.ts'
+import type { TonConnectRail } from './payments/tonconnect.ts'
+import QRCode from 'qrcode'
 
 const MAX_BODY = 8 * 1024
 
@@ -43,10 +45,12 @@ export type ApiOptions = {
   screen: ScreenLike
   /** Dev-only endpoints that simulate incoming Telegram messages. Leave undefined in normal runs. */
   dev?: { flowA?: FlowAController; flowB?: FlowBController; chatId?: () => Promise<number> }
+  /** TON Connect pairing for the phone page. Undefined when no manifest URL is configured. */
+  wallet?: TonConnectRail
 }
 
 export function createApiServer(opts: ApiOptions): Server {
-  const { screen, dev } = opts
+  const { screen, dev, wallet } = opts
   return createServer(async (req, res) => {
     try {
       const url = new URL(req.url ?? '/', 'http://localhost')
@@ -54,10 +58,25 @@ export function createApiServer(opts: ApiOptions): Server {
         return send(res, 200, { ok: true, service: 'gramsight-backend', network: 'testnet' })
       }
       if (req.method === 'GET' && url.pathname === '/api/card') return send(res, 200, screen.view())
+      if (req.method === 'GET' && url.pathname === '/api/tonconnect') {
+        if (!wallet) return send(res, 200, { configured: false, connected: false })
+        await wallet.init()
+        return send(res, 200, wallet.status())
+      }
       if (req.method !== 'POST') return send(res, 404, { error: 'not found' })
 
       const body = await readJson(req)
       switch (url.pathname) {
+        case '/api/tonconnect/connect': {
+          // Pairing happens on the phone page: a universal link plus the same link as a QR code.
+          if (!wallet) return send(res, 400, { error: 'TON Connect is not configured (GRAMSIGHT_TONCONNECT_MANIFEST_URL)' })
+          const link = await wallet.connectLink(str(body.wallet, 30, 'tonkeeper'))
+          const qrSvg = await QRCode.toString(link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
+          return send(res, 200, { link, qrSvg })
+        }
+        case '/api/tonconnect/disconnect':
+          if (wallet) await wallet.disconnect()
+          return send(res, 200, wallet ? wallet.status() : { configured: false, connected: false })
         case '/api/command': {
           const text = typeof body.text === 'string' ? body.text.slice(0, 300) : ''
           if (!text.trim()) return send(res, 400, { error: 'text is required' })

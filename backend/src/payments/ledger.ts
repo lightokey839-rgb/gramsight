@@ -51,9 +51,11 @@ export class PaymentLedger {
    * Total counted against the daily limit: real payments (not dry runs) not known to have failed,
    * in the window. A started payment counts until it is known to have failed.
    */
-  spentSince(sinceMs: number): bigint {
+  spentSince(sinceMs: number, rail = 'testnet-payer'): bigint {
+    // The daily limit guards the backend-held testnet key, so it counts that rail only. Wallet (TON Connect)
+    // payments are approved by the user in their own wallet; dry runs move nothing.
     return this.list()
-      .filter((p) => p.rail !== 'dry-run' && p.status !== 'failed' && Date.parse(p.at) >= sinceMs)
+      .filter((p) => p.rail === rail && p.status !== 'failed' && Date.parse(p.at) >= sinceMs)
       .reduce((sum, p) => sum + BigInt(p.amountNano), 0n)
   }
 

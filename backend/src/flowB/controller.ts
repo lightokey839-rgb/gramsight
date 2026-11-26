@@ -13,7 +13,7 @@ import type { CardView } from '../flowA/controller.ts'
 import { quoteUntrusted } from '../flowA/requests.ts'
 import { parsePayCommand } from '../payments/command.ts'
 import type { PaymentLedger } from '../payments/ledger.ts'
-import type { RailChooser } from '../payments/rail.ts'
+import type { PaymentRail, RailChooser } from '../payments/rail.ts'
 import { fingerprint } from '../vault/addresses.ts'
 import type { Reason, VerdictExplainer } from '../ai/explain.ts'
 
@@ -31,7 +31,7 @@ export type AddressShare = {
   reason?: Reason
 }
 
-export type PaymentLimits = { perPaymentNano: bigint; dailyNano: bigint }
+export type PaymentLimits = { perPaymentNano: bigint; dailyNano: bigint; walletMaxNano?: bigint }
 
 export type PaymentDeps = { rails: RailChooser; ledger: PaymentLedger; limits: PaymentLimits }
 
@@ -39,6 +39,7 @@ type Pending = {
   id: string
   item: AddressShare
   amountNano: bigint
+  rail: PaymentRail
   needsSpokenConfirm: boolean
   spokenConfirmed: boolean
   state: 'awaiting' | 'paying'
@@ -180,21 +181,33 @@ export class FlowBController {
       this.setFlash('error', 'Gramsight pays in Gram on TON only.\nThis is not a TON address.')
       return this.view()
     }
-    const { perPaymentNano, dailyNano } = this.payments.limits
-    if (cmd.amountNano > perPaymentNano) {
-      this.setFlash('error', `Over your limit.\nMax ${gram(perPaymentNano)} per payment.`)
-      return this.view()
-    }
-    const spent = this.payments.ledger.spentSince(this.now() - DAY_MS)
-    if (spent + cmd.amountNano > dailyNano) {
-      this.setFlash('error', `Over your daily limit.\n${gram(dailyNano - spent > 0n ? dailyNano - spent : 0n)} left today.`)
-      return this.view()
+    // Which path pays: decided now, so the card can say whether a tap pays or the phone must approve.
+    const rail = this.payments.rails({ amountNano: cmd.amountNano, verdict: v })
+    const { perPaymentNano, dailyNano, walletMaxNano } = this.payments.limits
+    if (rail.id === 'tonconnect') {
+      const max = walletMaxNano ?? perPaymentNano
+      if (cmd.amountNano > max) {
+        this.setFlash('error', `Over your limit.\nMax ${gram(max)} per payment.`)
+        return this.view()
+      }
+    } else {
+      if (cmd.amountNano > perPaymentNano) {
+        this.setFlash('error', `Over your limit.\nMax ${gram(perPaymentNano)} per payment.`)
+        return this.view()
+      }
+      const spent = this.payments.ledger.spentSince(this.now() - DAY_MS)
+      if (spent + cmd.amountNano > dailyNano) {
+        this.setFlash('error', `Over your daily limit.\n${gram(dailyNano - spent > 0n ? dailyNano - spent : 0n)} left today.`)
+        return this.view()
+      }
     }
     this.pending = {
       id: `p-${randomBytes(6).toString('hex')}`,
       item,
       amountNano: cmd.amountNano,
-      needsSpokenConfirm: v.level === 'confirm-twice',
+      rail,
+      // On the wallet path the phone approval is the second confirmation; on the hands-free path it is spoken.
+      needsSpokenConfirm: rail.id !== 'tonconnect' && v.level === 'confirm-twice',
       spokenConfirmed: false,
       state: 'awaiting',
     }
@@ -211,7 +224,7 @@ export class FlowBController {
     p.state = 'paying' // consumed before anything is sent
     this.bump()
     const v = p.item.verdict!
-    const rail = this.payments.rails({ amountNano: p.amountNano, verdict: v })
+    const rail = p.rail
     const ledger = this.payments.ledger
     const idx = ledger.add({
       at: new Date(this.now()).toISOString(),
@@ -233,9 +246,11 @@ export class FlowBController {
         this.log(`payment ${r.status} via ${rail.id}${r.hash ? ` (${r.hash})` : ''}`)
         this.setFlash(
           'sent',
-          r.status === 'confirmed'
-            ? `SENT ${gram(p.amountNano)} → ${p.item.fromName}\n${rail.network} · tx ${short}`
-            : `SUBMITTED ${gram(p.amountNano)} → ${p.item.fromName}\nNot confirmed yet. Check the explorer\nbefore trying again.`,
+          rail.id === 'tonconnect'
+            ? `SENT ${gram(p.amountNano)} → ${p.item.fromName}\nApproved in your wallet · msg ${short}`
+            : r.status === 'confirmed'
+              ? `SENT ${gram(p.amountNano)} → ${p.item.fromName}\n${rail.network} · tx ${short}`
+              : `SUBMITTED ${gram(p.amountNano)} → ${p.item.fromName}\nNot confirmed yet. Check the explorer\nbefore trying again.`,
           8000,
         )
       })
@@ -244,7 +259,8 @@ export class FlowBController {
         this.pending = undefined
         const reason = err instanceof Error ? err.message : String(err)
         this.log(`payment failed via ${rail.id}: ${reason}`)
-        this.setFlash('error', `NOT PAID\n${quoteUntrusted(reason, 80)}`, 8000)
+        const head = /^Rejected/.test(reason) ? 'REJECTED' : /^Timed out/.test(reason) ? 'TIMED OUT' : 'NOT PAID'
+        this.setFlash('error', `${head}\n${quoteUntrusted(reason, 80)}\nNothing was sent.`, 8000)
       })
     return this.view()
   }
@@ -262,13 +278,24 @@ export class FlowBController {
     if (p) {
       const v = p.item.verdict!
       const armed = !p.needsSpokenConfirm || p.spokenConfirmed
+      const wallet = p.rail.id === 'tonconnect'
+      const action =
+        p.state === 'paying'
+          ? wallet
+            ? 'Approve on your phone…'
+            : 'Paying… waiting for the network'
+          : wallet
+            ? 'Tap: send to your wallet   Double-tap: cancel'
+            : armed
+              ? 'Tap: pay      Double-tap: cancel'
+              : 'Say "confirm", then tap.   Double-tap: cancel'
       const lines = [
         `PAY ${p.item.fromName} · ${p.item.chatTitle}`,
-        `${gram(p.amountNano)} · TON testnet`,
+        `${gram(p.amountNano)} · TON testnet${wallet ? ' · your wallet' : ''}`,
         fingerprint(v.address),
         v.headline,
         '',
-        p.state === 'paying' ? 'Paying… waiting for the network' : armed ? 'Tap: pay      Double-tap: cancel' : 'Say "confirm", then tap.   Double-tap: cancel',
+        action,
       ]
       return {
         id: p.id,

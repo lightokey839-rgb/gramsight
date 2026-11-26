@@ -34,10 +34,12 @@
     "@tonconnect/sdk": "^5.0.2",
     "dotenv": "^18.0.10",
     "prebuilt-tdlib": "^0.1008070.0",
+    "qrcode": "^1.5.4",
     "tdl": "^8.1.0"
   },
   "devDependencies": {
     "@types/node": "^24.19.2",
+    "@types/qrcode": "^1.5.6",
     "tdlib-types": "npm:@prebuilt-tdlib/types@^0.1008070.0",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3"

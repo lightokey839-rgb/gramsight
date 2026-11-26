@@ -37,6 +37,25 @@ export const singleRail =
   () =>
     rail
 
+/**
+ * The two-path rule (the production rule from the safety design, on testnet):
+ *   - verified address (their Telegram wallet, a saved contact, paid before) AND within the hands-free limit
+ *     -> hands-free rail (one tap on the glasses);
+ *   - anything else (new address, not their wallet, above the limit) -> the user's own wallet via TON Connect,
+ *     approved on the phone, when a wallet is connected. Without one, it stays on the hands-free rail, where the
+ *     glasses demand a spoken "confirm" and the hands-free limits apply.
+ */
+export function twoPathChooser(
+  handsFree: PaymentRail,
+  wallet: (PaymentRail & { isReady(): boolean }) | undefined,
+  handsFreeMaxNano: bigint,
+): RailChooser {
+  return ({ amountNano, verdict }) => {
+    const needsWallet = verdict.level !== 'ok' || amountNano > handsFreeMaxNano
+    return needsWallet && wallet?.isReady() ? wallet : handsFree
+  }
+}
+
 export class DryRunRail implements PaymentRail {
   readonly id = 'dry-run' as const
   readonly network = 'TON testnet (dry run)'
