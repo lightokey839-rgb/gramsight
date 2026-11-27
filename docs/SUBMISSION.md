@@ -50,5 +50,5 @@ TODO (Day 6): Even Hub packaging (.ehpk), pairing the phone with the backend, an
 
 ## Links
 
-- Repo: TODO (public GitHub URL)
+- Repo: https://github.com/lightokey839-rgb/gramsight
 - Demo video: TODO (3 minutes or less)
