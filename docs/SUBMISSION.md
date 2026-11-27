@@ -46,7 +46,11 @@ Built on: Even Hub SDK (G2), Telegram TDLib and Bot API, TON (W5 wallet, TON Con
 
 ## Path to launch in Even Hub
 
-TODO (Day 6): Even Hub packaging (.ehpk), pairing the phone with the backend, and a hosted backend.
+Today the glasses app runs from the Even Hub dev server against a backend on your own computer (it listens on 127.0.0.1 only). Next steps to ship it in Even Hub:
+
+1. Package the glasses app as an Even Hub `.ehpk` with its own package id.
+2. Run the backend as a small hosted service per user, paired once from the phone page, so the glasses work away from your computer.
+3. Switch the network from testnet to mainnet. Payments then go only through your own Gram Wallet via TON Connect, so Gramsight still holds no key that can move your funds.
 
 ## Links
 
