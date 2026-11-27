@@ -150,11 +150,12 @@ cd backend; npm run dev
    - On a request or payable verdict card, **tap to talk**, speak, then tap again (or wait 6 s).
    - Only the short command audio goes to Groq, and nothing is stored.
 3. **Your testnet wallet for TON Connect:**
-   - Install Tonkeeper and add a **testnet** account (Tonkeeper's docs put it under Add Wallet → developer options).
+   - A **testnet** account in Gram Wallet (web version wallet.ton.org, or its app or browser extension; testnet is under Settings → developer options), Keeper or My Wallet.
    - Fund it once from @testgiver_ton_bot.
    - Never use your real Gram Wallet; that is mainnet.
-   - Host `docs/tonconnect/tonconnect-manifest.json` over HTTPS. Easiest: make the repo public on GitHub and use the raw URL. Put your user name into the manifest and set `GRAMSIGHT_TONCONNECT_MANIFEST_URL`.
-   - Then open the phone page, press **Connect wallet**, and approve in Tonkeeper.
+   - Host `docs/tonconnect/tonconnect-manifest.json` over HTTPS. This repo already hosts it at `https://raw.githubusercontent.com/lightokey839-rgb/gramsight/main/docs/tonconnect/tonconnect-manifest.json`; set `GRAMSIGHT_TONCONNECT_MANIFEST_URL` to that.
+   - Then open the phone page, pick your wallet, press **Connect wallet**, and approve in the wallet.
+   - On a desktop, Keeper Web gets its own **Open in Keeper Web** button. Gram Wallet and My Wallet open through their app or browser extension, or you scan the QR code with the phone app.
 
 ### Flow A on the glasses (someone asks for your address)
 

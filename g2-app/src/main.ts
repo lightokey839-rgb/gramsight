@@ -237,6 +237,8 @@ const wApp = document.querySelector<HTMLSelectElement>('#walletApp')!
 const wPick = document.querySelector<HTMLDivElement>('#walletPick')!
 const short = (a: string) => (a.length > 18 ? `${a.slice(0, 6)}…${a.slice(-6)}` : a)
 
+let pairing = false // true while a pairing link is out and we are waiting for the wallet
+
 async function refreshWallet(): Promise<WalletStatus | undefined> {
   try {
     const s = (await fetch(`${API}/tonconnect`, { cache: 'no-store' }).then((r) => r.json())) as WalletStatus
@@ -250,7 +252,7 @@ async function refreshWallet(): Promise<WalletStatus | undefined> {
       wDisconnect.hidden = false
       wPair.hidden = true
     } else {
-      wStatus.textContent = 'Not connected.'
+      wStatus.textContent = pairing ? 'Waiting for your wallet to approve the connection…' : 'Not connected.'
       wPick.hidden = false
       wDisconnect.hidden = true
     }
@@ -279,15 +281,18 @@ wConnect.addEventListener('click', async () => {
     wWeb.hidden = wWebHint.hidden = !data.webLink
     if (data.webLink) wWeb.href = data.webLink
     wPair.hidden = false
+    pairing = true
     wStatus.textContent = 'Waiting for your wallet to approve the connection…'
     const until = Date.now() + 180_000
     while (Date.now() < until) {
       await new Promise((r) => setTimeout(r, 2000))
       if ((await refreshWallet())?.connected) break
     }
+    if (wPick.hidden === false) wStatus.textContent = 'No approval within 3 minutes. Press Connect wallet to try again.'
   } catch (err) {
     wStatus.textContent = `Could not start pairing: ${err instanceof Error ? err.message : String(err)}`
   } finally {
+    pairing = false
     wConnect.disabled = false
   }
 })
