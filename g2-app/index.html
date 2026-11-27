@@ -78,6 +78,15 @@
         </div>
       </form>
 
+      <form id="simShare" hidden>
+        <label for="simAddr">Developer: simulate someone sending you an address</label>
+        <div class="row">
+          <input id="simFrom" autocomplete="off" value="Ada" aria-label="Sender name" style="flex: 0 0 30%" />
+          <input id="simAddr" autocomplete="off" placeholder="address they send" aria-label="Address" />
+          <button type="submit">Simulate</button>
+        </div>
+      </form>
+
       <section id="wallet" aria-labelledby="walletTitle">
         <h2 id="walletTitle">Your testnet wallet (TON Connect)</h2>
         <p class="sub" id="walletStatus">Checking…</p>
@@ -85,7 +94,7 @@
         <div class="row" id="walletPick">
           <label for="walletApp" class="visually-hidden">Wallet</label>
           <select id="walletApp">
-            <option value="tonkeeper">Keeper (Tonkeeper)</option>
+            <option value="tonkeeper">Tonkeeper (Keeper)</option>
             <option value="gramwallet">Gram Wallet</option>
             <option value="mytonwallet">My Wallet (MyTonWallet)</option>
           </select>

@@ -42,7 +42,7 @@ export class FileStorage implements IStorage {
 export type PairableWallet = 'gramwallet' | 'tonkeeper' | 'mytonwallet'
 export const PAIRABLE_WALLETS: Record<PairableWallet, { label: string; web?: string }> = {
   gramwallet: { label: 'Gram Wallet' },
-  tonkeeper: { label: 'Keeper (Tonkeeper)', web: 'https://web.keeperwallet.com/ton-connect' },
+  tonkeeper: { label: 'Tonkeeper', web: 'https://web.keeperwallet.com/ton-connect' },
   mytonwallet: { label: 'My Wallet (MyTonWallet)' },
 }
 export const isPairableWallet = (v: unknown): v is PairableWallet => typeof v === 'string' && Object.hasOwn(PAIRABLE_WALLETS, v)

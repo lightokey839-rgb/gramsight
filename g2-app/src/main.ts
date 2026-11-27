@@ -320,4 +320,12 @@ if (import.meta.env.DEV) {
     const text = document.querySelector<HTMLInputElement>('#simText')!.value
     void act('simulated request', '/dev/request', { text, fromName: 'Ada', chatTitle: 'Weekend trip' })
   })
+  const share = document.querySelector<HTMLFormElement>('#simShare')!
+  share.hidden = false
+  share.addEventListener('submit', (e) => {
+    e.preventDefault()
+    const address = document.querySelector<HTMLInputElement>('#simAddr')!.value.trim()
+    const fromName = document.querySelector<HTMLInputElement>('#simFrom')!.value.trim() || 'Ada'
+    if (address) void act('simulated share', '/dev/share', { address, fromName, chatTitle: 'Weekend trip' })
+  })
 }
