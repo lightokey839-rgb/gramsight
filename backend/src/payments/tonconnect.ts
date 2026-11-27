@@ -34,7 +34,21 @@ export class FileStorage implements IStorage {
   }
 }
 
-export type TonConnectStatus = { configured: boolean; connected: boolean; address?: string; testnet?: boolean; wallet?: string }
+/**
+ * Wallets offered on the phone page. `web` is the wallet's own web-version route that takes the same TON Connect
+ * query (checked 27 Nov 2026: wallet.tonkeeper.com/ton-connect forwards to web.keeperwallet.com/ton-connect).
+ * Gram Wallet's web version (wallet.ton.org) has no such route we could confirm, so it gets the universal link only.
+ */
+export type PairableWallet = 'gramwallet' | 'tonkeeper' | 'mytonwallet'
+export const PAIRABLE_WALLETS: Record<PairableWallet, { label: string; web?: string }> = {
+  gramwallet: { label: 'Gram Wallet' },
+  tonkeeper: { label: 'Keeper (Tonkeeper)', web: 'https://web.keeperwallet.com/ton-connect' },
+  mytonwallet: { label: 'My Wallet (MyTonWallet)' },
+}
+export const isPairableWallet = (v: unknown): v is PairableWallet => typeof v === 'string' && Object.hasOwn(PAIRABLE_WALLETS, v)
+export type Pairing = { wallet: string; link: string; webLink?: string }
+
+export type TonConnectStatus ={ configured: boolean; connected: boolean; address?: string; testnet?: boolean; wallet?: string }
 
 /** The shape of the TON Connect connector this rail uses (lets tests use a fake). */
 export interface ConnectorLike {
@@ -103,17 +117,28 @@ export class TonConnectRail implements PaymentRail {
   }
 
   /** A universal link (show it as a QR code on the phone page, or open it on the phone) to pair a wallet. */
-  async connectLink(appName = 'tonkeeper'): Promise<string> {
+  async connectLink(appName: PairableWallet = 'tonkeeper'): Promise<string> {
+    return (await this.pairing(appName)).link
+  }
+
+  /**
+   * Pairing links for one wallet. `link` is the wallet's universal link: it opens the phone app, desktop app or
+   * browser extension (and works as a QR code). `webLink`, where known, opens the same request in the wallet's
+   * web version, for a wallet that lives in a browser tab (no app or extension installed).
+   */
+  async pairing(appName: PairableWallet = 'tonkeeper'): Promise<Pairing> {
+    const target = PAIRABLE_WALLETS[appName]
+    if (!target) throw new Error('Unknown wallet')
     await this.init()
     if (this.connector.connected) await this.connector.disconnect()
     this.connector.setConnectionNetwork(CHAIN.TESTNET)
     const wallets = (await this.connector.getWallets()) as Parameters<typeof isWalletInfoRemote>[0][]
-    const remote = wallets.filter(isWalletInfoRemote)
-    const w = remote.find((x) => x.appName === appName) ?? remote[0]
-    if (!w) throw new Error('No TON Connect wallets available')
+    const w = wallets.filter(isWalletInfoRemote).find((x) => x.appName === appName)
+    if (!w) throw new Error(`${target.label} is not in the TON Connect wallet list`)
     const link = this.connector.connect({ universalLink: w.universalLink, bridgeUrl: w.bridgeUrl })
     if (typeof link !== 'string') throw new Error('Wallet link not available')
-    return link
+    const query = link.slice(link.indexOf('?'))
+    return { wallet: target.label, link, ...(target.web ? { webLink: `${target.web}${query}` } : {}) }
   }
 
   async disconnect(): Promise<void> {

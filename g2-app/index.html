@@ -44,6 +44,15 @@
       .qr { background: #FFFFFF; border-radius: 8px; padding: 8px; width: 220px; max-width: 100%; box-sizing: border-box; }
       .qr svg { display: block; width: 100%; height: auto; }
       a { color: #7CFC8A; }
+      a.btn {
+        display: inline-flex; align-items: center; min-height: 44px; padding: 10px 14px; box-sizing: border-box;
+        border-radius: 8px; background: #7CFC8A; color: #111; font-weight: 600; text-decoration: none;
+      }
+      select {
+        font: inherit; color: inherit; background: #2E2E2E; border: 1px solid #4A4A4A; border-radius: 8px;
+        padding: 10px 12px; min-height: 44px; flex: 1; min-width: 0;
+      }
+      .visually-hidden { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
       [hidden] { display: none !important; }
     </style>
   </head>
@@ -73,14 +82,26 @@
         <h2 id="walletTitle">Your testnet wallet (TON Connect)</h2>
         <p class="sub" id="walletStatus">Checking…</p>
         <p class="note">Used for new addresses, warnings and larger payments: you approve them in your own wallet app. Use a <b>testnet</b> account, never your real Gram Wallet.</p>
-        <div class="row">
+        <div class="row" id="walletPick">
+          <label for="walletApp" class="visually-hidden">Wallet</label>
+          <select id="walletApp">
+            <option value="tonkeeper">Keeper (Tonkeeper)</option>
+            <option value="gramwallet">Gram Wallet</option>
+            <option value="mytonwallet">My Wallet (MyTonWallet)</option>
+          </select>
           <button type="button" id="walletConnect">Connect wallet</button>
-          <button type="button" id="walletDisconnect" hidden>Disconnect</button>
         </div>
+        <div class="row"><button type="button" id="walletDisconnect" hidden>Disconnect</button></div>
         <div id="walletPair" hidden>
-          <p class="note">Scan with your phone's camera, or open the link on the phone:</p>
+          <p class="note" id="walletWebHint" hidden>Wallet open in a browser tab? Use this, in the same browser where you are signed in to it:</p>
+          <p><a id="walletWeb" class="btn" href="#" target="_blank" rel="noopener" hidden>Open in Keeper Web</a></p>
+          <p class="note">Wallet app or browser extension installed? Open it directly:</p>
+          <p class="row">
+            <a id="walletLink" class="btn" href="#" target="_blank" rel="noopener">Open in wallet</a>
+            <button type="button" id="walletCopy">Copy link</button>
+          </p>
+          <p class="note">Or scan with the wallet on your phone:</p>
           <div id="walletQr" class="qr"></div>
-          <p><a id="walletLink" href="#" rel="noopener">Open in Tonkeeper</a></p>
         </div>
       </section>
 

@@ -10,7 +10,7 @@ import { FlowAController } from '../src/flowA/controller.ts'
 import { FlowBController } from '../src/flowB/controller.ts'
 import { PaymentLedger } from '../src/payments/ledger.ts'
 import { type PaymentRail, type PaymentRequest, twoPathChooser } from '../src/payments/rail.ts'
-import { type ConnectorLike, FileStorage, TonConnectRail } from '../src/payments/tonconnect.ts'
+import { type ConnectorLike, FileStorage, TonConnectRail, isPairableWallet } from '../src/payments/tonconnect.ts'
 import { Screen } from '../src/screen.ts'
 import { VaultStore } from '../src/vault/store.ts'
 
@@ -98,6 +98,13 @@ test('pairing link and file storage', async () => {
   c.connected = false
   const link = await new TonConnectRail(c).connectLink()
   assert.match(link, /^https:\/\/app\.tonkeeper\.com\/ton-connect/)
+  // Keeper also gets its web version, with the same request query, for a wallet that lives in a browser tab.
+  const p = await new TonConnectRail(c).pairing('tonkeeper')
+  assert.equal(p.webLink, 'https://web.keeperwallet.com/ton-connect?v=2&id=test')
+  // A wallet that is not in the list is an error, not a silent fallback to another wallet.
+  await assert.rejects(new TonConnectRail(c).pairing('gramwallet'), /not in the TON Connect wallet list/)
+  assert.equal(isPairableWallet('gramwallet'), true)
+  assert.equal(isPairableWallet('constructor'), false)
   const s = new FileStorage(join(dir, 'tc.json'))
   await s.setItem('a', '1')
   assert.equal(await s.getItem('a'), '1')

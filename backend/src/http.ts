@@ -5,7 +5,7 @@ import type { FlowAController } from './flowA/controller.ts'
 import { chainHintIn } from './flowA/requests.ts'
 import type { FlowBController } from './flowB/controller.ts'
 import type { ScreenLike } from './screen.ts'
-import type { TonConnectRail } from './payments/tonconnect.ts'
+import { type TonConnectRail, isPairableWallet } from './payments/tonconnect.ts'
 import QRCode from 'qrcode'
 import { type Transcriber, VoiceBusyError } from './voice/groq.ts'
 
@@ -107,9 +107,11 @@ export function createApiServer(opts: ApiOptions): Server {
         case '/api/tonconnect/connect': {
           // Pairing happens on the phone page: a universal link plus the same link as a QR code.
           if (!wallet) return send(res, 400, { error: 'TON Connect is not configured (GRAMSIGHT_TONCONNECT_MANIFEST_URL)' })
-          const link = await wallet.connectLink(str(body.wallet, 30, 'tonkeeper'))
-          const qrSvg = await QRCode.toString(link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
-          return send(res, 200, { link, qrSvg })
+          const choice = body.wallet ?? 'tonkeeper'
+          if (!isPairableWallet(choice)) return send(res, 400, { error: 'Unknown wallet' })
+          const pairing = await wallet.pairing(choice)
+          const qrSvg = await QRCode.toString(pairing.link, { type: 'svg', margin: 1, errorCorrectionLevel: 'M' })
+          return send(res, 200, { ...pairing, qrSvg })
         }
         case '/api/tonconnect/disconnect':
           if (wallet) await wallet.disconnect()
