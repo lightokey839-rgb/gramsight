@@ -54,6 +54,16 @@ Today the glasses app runs from the Even Hub dev server against a backend on you
 2. Run the backend as a small hosted service per user, paired once from the phone page, so the glasses work away from your computer.
 3. Switch the network from testnet to mainnet. Payments then go only through your own Gram Wallet via TON Connect, so Gramsight still holds no key that can move your funds.
 
+## Feature requests
+
+1. **Telegram:** wallet lookups through the client API. `getAddressTonWallet` and `getUserTonWalletAddresses` return `WALLET_UNAVAILABLE` for us (`can_use_ton_wallet = false`), so "whose wallet is this address?" can't be answered.
+2. **Telegram:** `ton_wallet_card` in groups. The Bot API only returns it for private chats, but most address sharing happens in groups.
+3. **TON Connect:** pairing a web wallet from a desktop browser. Gram Wallet web (wallet.ton.org) can't take a pairing link; Keeper Web can.
+4. **Even Hub:** a one-line background status or badge for apps that aren't on screen (for example "1 request waiting"), with no pop-ups.
+5. **Even Hub:** a wallet approval step on the glasses. Show the amount, recipient fingerprint and verdict, confirm with the ring, then hand off to the paired wallet to sign.
+
+Details: [docs/FEATURE-REQUESTS.md](https://github.com/lightokey839-rgb/gramsight/blob/main/docs/FEATURE-REQUESTS.md)
+
 ## Links
 
 - Repo: https://github.com/lightokey839-rgb/gramsight

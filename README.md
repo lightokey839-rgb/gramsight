@@ -294,7 +294,19 @@ No Gramsight code existed before the build week started on 23 Nov 2026 (working 
 
 ## Path to launch in Even Hub
 
-To be written during build week.
+Today the glasses app runs from the Even Hub dev server against a backend on your own computer, which listens on 127.0.0.1 only. Next steps:
+
+1. Package the glasses app as an Even Hub `.ehpk` with its own package id.
+2. Run the backend as a small hosted service per user, paired once from the phone page.
+3. Switch from testnet to mainnet, with payments going through your own Gram Wallet via TON Connect.
+
+What we'd ask of the platforms is in [docs/FEATURE-REQUESTS.md](docs/FEATURE-REQUESTS.md).
+
+## Notes for G2 developers
+
+- **Taps arrive with no event type.** `CLICK_EVENT` is 0, and protobuf leaves out zero values, so a tap comes through with `eventType` undefined. Treat a missing type inside an event envelope as a tap. See `eventTypeOf` in `g2-app/src/main.ts`.
+- **No ✓ glyph.** The G2 font has no ✓; `→`, `·` and `…` do render. Use plain words for status.
+- **Draw after the input callback.** A display update sent from inside the input-event callback can be overwritten, so draw on the next tick.
 
 ## License
 
