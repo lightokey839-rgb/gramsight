@@ -33,6 +33,8 @@ Telegram users who pay and get paid in crypto: freelancers, traders, friends spl
    The glasses show one verdict ("Matches their Telegram wallet", "Lookalike of contact Ada", "New address, be careful") plus a one-line AI explanation. A blocked address can never be paid.
 3. **You pay.** Say "send 1 Gram". A small payment to a verified address goes out with one tap, from a testnet-only payer. A larger payment, a new address, or "not their wallet" goes to your own wallet app through TON Connect: you approve on your phone, and Gramsight holds no key.
 
+   **Status:** the TON Connect path is built and tested up to the pairing request (real pairing links and QR codes, hosted manifest). A live wallet approval wasn't completed in build week: our testnet wallet lived in Gram Wallet's web version, which can't take a pairing link from a desktop page (see FEATURE-REQUESTS). Without a paired wallet, a risky payment needs a spoken "confirm" plus a tap, within the same limits.
+
 Built on: Even Hub SDK (G2), Telegram TDLib and Bot API, TON (W5 wallet, TON Connect, tonapi), OpenRouter, Groq Whisper (speech-to-text).
 
 ## Safety

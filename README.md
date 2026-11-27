@@ -5,7 +5,7 @@
 An AI wallet assistant for Telegram, on your Even Realities G2 glasses. Like Confirmation of Payee at UK banks, it checks that an address belongs to the person you think it does (the wallet on their own Telegram profile) before any money moves, and it hands out your own addresses safely when someone asks.
 
 - **Give out your address (Flow A):** someone in a Telegram chat asks for your address. The request shows on your glasses, you say "can u send Ada my sol addy", check the confirmation card and tap. The reply goes out from your own Telegram account. The address comes from your owner-only vault, never from the AI.
-- **Check before you pay (Flow B):** someone sends you an address. The glasses show a short verdict ("Matches their Telegram wallet", "New address, be careful", "Lookalike of contact Ada") and a one-line reason in plain words. If it is safe and you say "send 1 Gram", one tap sends a real **TON testnet** Gram transfer. A larger payment, or one to a new address, goes to your own wallet app for approval through TON Connect.
+- **Check before you pay (Flow B):** someone sends you an address. The glasses show a short verdict ("Matches their Telegram wallet", "New address, be careful", "Lookalike of contact Ada") and a one-line reason in plain words. If it is safe and you say "send 1 Gram", one tap sends a real **TON testnet** Gram transfer. A larger payment, or one to a new address, goes to your own wallet app for approval through TON Connect. That path is built and tested up to the wallet request; a live wallet approval wasn't completed in build week (see [TON Connect status](#paying-from-the-verdict-card-flow-b)).
 
 Built for the **Heads Up: Even Realities Hackathon** (DoraHacks, 23 to 29 Nov 2026).
 
@@ -208,7 +208,16 @@ Guards enforced in code:
 - Limits apply per payment and per rolling 24 hours. They are counted from a ledger on disk, so a restart doesn't reset them.
 - One tap pays at most once. A failed or unconfirmed payment is reported, never retried.
 
-The payment step is pluggable. Today it is the hands-free testnet payer, or a dry run by default. A TON Connect step, where you approve in your own wallet app for larger payments or new addresses, can plug in without changing the glasses flow. Proof: [docs/proof/day5-payments.md](docs/proof/day5-payments.md).
+The payment step is pluggable: the hands-free testnet payer, TON Connect, or a dry run (the default). Proof: [docs/proof/day5-payments.md](docs/proof/day5-payments.md).
+
+**TON Connect status (honest):**
+- Path 2 is built and covered by tests: the rail choice, the "Approve on your phone…" card, rejection, timeout, and testnet-only checks.
+- Pairing works up to the wallet request. The phone page makes real pairing links and QR codes for Tonkeeper, Gram Wallet and My Wallet, against the manifest hosted in this repo.
+- **A live wallet approval was not completed during build week.**
+  - The tester's testnet wallet lives in Gram Wallet's web version, which can't accept a pairing link from a desktop page.
+  - Importing it into Tonkeeper as a testnet wallet didn't work in time.
+  - See [docs/FEATURE-REQUESTS.md](docs/FEATURE-REQUESTS.md).
+- With no wallet paired, a risky payment (new address, warning, or above the hands-free limit) is never one tap. It needs a spoken "confirm" plus a tap, and the per-payment and daily limits still apply.
 
 ### The address vault bot
 

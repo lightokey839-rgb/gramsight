@@ -55,13 +55,13 @@ Each line below gives the action, then what you should see.
 3. **Flow B, hands-free payment** (backend payer, 1 Gram).
    - Sender `Bo`, address `0QDt57eVDqXxmNgwyCZIZZr35DtaO0u_HMH-Vy9ub9IUgtcl`. The glasses show "MATCHES SAVED CONTACT BO".
    - Say `send 1 Gram`, then tap. The glasses show "SENT 1 Gram"; check it on testnet.tonviewer.com.
-4. **Flow B, TON Connect** (your Tonkeeper approves).
-   - Sender `Cy`, address `0QCdyJOCmBGSSlmo7apsZXpfO-uyNwTZ2gusywDB2vsC8GrU`. This is the backend payer, so the Gram goes back to it.
-   - The glasses show "NEW ADDRESS, BE CAREFUL". Say `send 1 Gram`, then `confirm`, then tap. The glasses show "Approve on your phone…".
-   - Approve in Tonkeeper. The glasses show "SENT".
+4. **Flow B, new address (no wallet paired).**
+   - Sender `Cy`, address `0QCdyJOCmBGSSlmo7apsZXpfO-uyNwTZ2gusywDB2vsC8GrU`.
+   - The glasses show "NEW ADDRESS, BE CAREFUL". Say `send 1 Gram`. The card shows "Say "confirm", then tap".
+   - Stop there and double-tap to cancel. In the video, say: "With a wallet paired, this goes to your wallet app to approve."
 5. **Voice.** On any card that shows "Tap: talk", tap, speak, then tap again. The card shows what was heard and acts on it.
 
-If TON Connect pairing doesn't work, film moment 4 up to "Approve on your phone…" and say so in the video and README.
+Steps 0.1 (Tonkeeper) and 2 (pairing) are optional; skip them today.
 
 ## 4. Record and submit
 
