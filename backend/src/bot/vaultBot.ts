@@ -309,7 +309,10 @@ export class VaultBot {
   }
 
   private async onCallback(q: TgCallbackQuery): Promise<void> {
-    const answer = (text: string) => this.api.call('answerCallbackQuery', { callback_query_id: q.id, text })
+    // Answering the tap only clears the button's spinner. On a slow connection Telegram may already consider the
+    // tap too old; that must not turn a change that WAS saved into a "Not saved" message.
+    const answer = (text: string) =>
+      this.api.call('answerCallbackQuery', { callback_query_id: q.id, text }).catch(() => undefined)
     const edit = (text: string) =>
       q.message
         ? this.api
