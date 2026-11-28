@@ -116,7 +116,16 @@ async function main(): Promise<void> {
   })
 
   if (flag('GRAMSIGHT_BOT') !== 'off' && optionalEnv('BOT_TOKEN') && optionalEnv('BOT_OWNER_TELEGRAM_ID')) {
-    runVaultBot().catch((err: unknown) => log(`vault bot stopped: ${err instanceof Error ? err.message : String(err)}`))
+    // A slow or flaky connection must not leave the vault bot dead: retry, except when another copy is running.
+    const startBot = (): void => {
+      runVaultBot().catch((err: unknown) => {
+        const msg = err instanceof Error ? err.message : String(err)
+        if (msg.startsWith('Another copy')) return log(`vault bot stopped: ${msg}`)
+        log(`vault bot could not reach Telegram (${msg}); retrying in 15 s`)
+        setTimeout(startBot, 15_000)
+      })
+    }
+    startBot()
   }
 
   const shutdown = async () => {

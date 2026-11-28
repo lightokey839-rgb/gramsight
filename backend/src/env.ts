@@ -1,6 +1,8 @@
 // Loads the repo-root .env and gives typed, never-logged access to secrets.
 import { config } from 'dotenv'
 import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { setDefaultAutoSelectFamilyAttemptTimeout } from 'node:net'
+import { setDefaultResultOrder } from 'node:dns'
 import { dirname, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
@@ -8,6 +10,12 @@ export const BACKEND_DIR = resolve(dirname(fileURLToPath(import.meta.url)), '..'
 export const REPO_ROOT = resolve(BACKEND_DIR, '..')
 // GRAMSIGHT_ENV_FILE points the scripts at another file (used to test them without touching the real .env).
 export const ENV_PATH = process.env.GRAMSIGHT_ENV_FILE ? resolve(process.env.GRAMSIGHT_ENV_FILE) : resolve(REPO_ROOT, '.env')
+
+// Slow networks: Node tries each IP address for only 250 ms before giving up (ETIMEDOUT), while curl and
+// browsers wait longer. On a connection where IPv6 fails and IPv4 takes ~600 ms to connect, every fetch to
+// api.telegram.org failed. Every entry point imports this file, so this one line fixes them all.
+setDefaultAutoSelectFamilyAttemptTimeout(2500)
+setDefaultResultOrder('ipv4first') // where IPv6 is broken, try the address that works first
 
 let loaded = false
 
