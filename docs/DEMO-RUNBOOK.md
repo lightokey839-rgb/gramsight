@@ -15,7 +15,8 @@ Never paste recovery words anywhere. Type them from paper, and only into the wal
    - `/start`
    - `/add ton main 0QA04eYUjjWoZkp9DR1kGnE1a1WCwIaXFz77fRizjTlizf-2`: your address, used for Flow A
    - `/contact ton ada 0QDFNkha4el60EnN_1CO813EcRLDLjsInqkvIIZzw-4fmull`: a demo contact. Nobody owns it; it is only there to be imitated.
-   - `/contact ton bo 0QDt57eVDqXxmNgwyCZIZZr35DtaO0u_HMH-Vy9ub9IUgtcl`: a second demo contact, who receives the hands-free payment. Nobody owns it, so that 1 test Gram is simply gone, which is fine on testnet.
+   - Optional, not used in the video: `/contact ton bo 0QDt57eVDqXxmNgwyCZIZZr35DtaO0u_HMH-Vy9ub9IUgtcl`.
+   - Ada and Bo are generated demo addresses that nobody owns, so test Gram sent to them is simply gone, which is fine on testnet.
 
 ## 1. Start everything live (three PowerShell windows)
 
@@ -63,9 +64,33 @@ Each line below gives the action, then what you should see.
 
 Steps 0.1 (Tonkeeper) and 2 (pairing) are optional; skip them today.
 
-## 4. Record and submit
+## 4. The video (1 to 3 minutes)
 
-- Record with Windows key + Alt + R (Xbox Game Bar), 3 minutes or less, following section 10 of the handoff.
+Organizer rules: one real moment from someone's day, start to finish; live in the simulator with real data, no slides; show step by step how a user connects their account; and one sentence on what Gramsight does that Even AI can't. An AI voiceover is fine.
+
+**Keep private things off camera:** your phone number, login codes, `.env`, recovery words and bot token. Close those windows before recording.
+
+1. **0:00-0:15, pitch.**
+   - On screen: the simulator on the idle card.
+   - Say: "Gramsight is an AI wallet assistant for Telegram on your G2 glasses. Even AI answers questions; Gramsight acts inside your own Telegram account and wallet: it checks whether an address really belongs to the person who sent it, blocks lookalikes, and pays on testnet only after your tap."
+2. **0:15-0:45, connecting your accounts.**
+   - Telegram: show the backend window line `Telegram user account connected (TDLib)`. Say: "Once, you log in with `npm run telegram:login` in your own terminal; Gramsight never sees your code." Don't re-run the login on camera.
+   - Vault: in @addressvault_bot, show `/start`, then `/add ton main …` and the Confirm tap.
+   - Phone page: show http://localhost:5173 (the command box and the wallet section).
+3. **0:45-2:15, one moment, start to finish. Ada is a friend in "Weekend trip".**
+   - Ada asks for your address: Simulate request `hey can you send me your ton address?`
+   - Say or type `send my ton address`, check the card, tap. Then show it arriving in **Saved Messages** in Telegram.
+   - Ada sends an address back. First a poisoned lookalike: sender `Ada`, `0QDFNkiKOGx2AV2eFOt5-be_nzIuggviSYMv88LiDxSlUull`. The glasses show **LOOKALIKE OF CONTACT ADA**, payment blocked.
+   - Then her real one: sender `Ada`, `0QDFNkha4el60EnN_1CO813EcRLDLjsInqkvIIZzw-4fmull`. The glasses show **MATCHES SAVED CONTACT ADA**.
+   - Say `send 1 Gram`, then tap. The glasses show **SENT**. Open the tx on testnet.tonviewer.com.
+4. **2:15-2:40, safety and voice.**
+   - Sender `Cy`, `0QCdyJOCmBGSSlmo7apsZXpfO-uyNwTZ2gusywDB2vsC8GrU`. The glasses show NEW ADDRESS. Use **tap to talk** and say `send 1 Gram`; the card asks "Say confirm, then tap". Double-tap to cancel.
+   - Say: "Risky payments need a spoken confirm plus a tap. The AI only reads what you said; it never sees or writes an address."
+5. **2:40-2:50, close.** Show https://github.com/lightokey839-rgb/gramsight.
+
+## 5. Record and submit
+
+- Record with Windows key + Alt + R (Xbox Game Bar).
 - Upload it to YouTube as **Unlisted**, and put the link in `docs/SUBMISSION.md`.
 - DoraHacks lets you submit early and edit the BUIDL until the deadline. Answers to the organizer's extra questions can't be changed after submitting.
 - Deadline: Sun 29 Nov, 23:59 Dubai time (19:59 UTC).

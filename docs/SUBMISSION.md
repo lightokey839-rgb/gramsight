@@ -8,6 +8,8 @@ Draft only. The user reviews and submits it. Facts here must match the README an
 
 **Tracks:** Crypto & DeFi (Gram Wallet on TON, testnet) + AI Assistants & Work (OpenRouter; Claude optional). Also for Best Telegram integration. The organizers confirmed on 26 Nov that two tracks are allowed and that Telegram is fine on top of any track.
 
+**What it does that Even AI can't:** Even AI answers questions; Gramsight acts inside your own Telegram account and wallet: it checks whether an address really belongs to the person who sent it, blocks lookalikes, and pays on testnet only after your tap.
+
 ## Problem
 
 People share and paste crypto addresses in Telegram chats all day. Two things go wrong:
